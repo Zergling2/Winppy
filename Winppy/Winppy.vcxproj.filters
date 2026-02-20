@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Project Files">
+      <UniqueIdentifier>{51f05c8a-9195-49c6-bc32-e0deffc788fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project Files\Network">
+      <UniqueIdentifier>{b5ae82b7-0a58-4ce6-a6f0-99c1a596b5a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project Files\Core">
+      <UniqueIdentifier>{417c38bf-599f-4e68-8895-c695273a6213}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project Files\Common">
+      <UniqueIdentifier>{4c255cdd-ac19-43c3-a1a4-e6aa32111c44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project Files\Containers">
+      <UniqueIdentifier>{bad9e270-4b4a-4102-8dfb-d5b1ab9a5878}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project Files\Platform">
+      <UniqueIdentifier>{d7508877-461e-4790-af63-adacf809d155}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="source\Core\TlsSerializeBufferBatch.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\SerializeBufferBatch.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\SerializeBufferBatchPool.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Network\TCPSession.cpp">
+      <Filter>Project Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Network\TCPServer.cpp">
+      <Filter>Project Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\FileLogger.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\Debug.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Common\Math.cpp">
+      <Filter>Project Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\ReceiveBuffer.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\SendQueue.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Network\Packet.cpp">
+      <Filter>Project Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\WinHelper.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\LogPrefix.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Core\SerializeBuffer.cpp">
+      <Filter>Project Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Network\TCPClient.cpp">
+      <Filter>Project Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Network\TCPClientEngine.cpp">
+      <Filter>Project Files\Network</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\winppy\Common\Alignment.h">
+      <Filter>Project Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\TlsSerializeBufferBatch.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\SerializeBufferBatch.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\SerializeBufferBatchPool.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\SRWLock.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Network\TCPSession.h">
+      <Filter>Project Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Network\TCPServer.h">
+      <Filter>Project Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\FileLogger.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\Debug.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Common\Math.h">
+      <Filter>Project Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\ReceiveBuffer.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\SendQueue.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Platform\CPU.h">
+      <Filter>Project Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Network\Packet.h">
+      <Filter>Project Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\WinHelper.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Common\EndKey.h">
+      <Filter>Project Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\LogPrefix.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Core\SerializeBuffer.h">
+      <Filter>Project Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Common\GlobalConstant.h">
+      <Filter>Project Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Network\TCPClient.h">
+      <Filter>Project Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Network\TCPClientEngine.h">
+      <Filter>Project Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Network\ITCPClientEventHandler.h">
+      <Filter>Project Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Network\TCPError.h">
+      <Filter>Project Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winppy\Platform\Platform.h">
+      <Filter>Project Files\Platform</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
