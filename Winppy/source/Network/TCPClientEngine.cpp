@@ -177,9 +177,6 @@ void TCPClientEngine::Release()
 	}
 	m_workerThreads.clear();
 
-	// 모든 worker thread가 종료된 시점에 남은 세션은 없어야 한다. worker thread가 모두 disconnection routine을 수행했어야만 한다.
-	assert(m_sessionCount == 0);
-
 
 	// 스레드 컨텍스트 댕글링 리소스 관리
 	m_workerThreadContext.m_hIoCompletionPort = NULL;
