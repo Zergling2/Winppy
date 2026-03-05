@@ -1,8 +1,8 @@
 #include <winppy/Core/TlsSerializeBufferBatch.h>
-#include <cassert>
 #include <winppy/Core/SerializeBuffer.h>
 #include <winppy/Core/SerializeBufferBatch.h>
 #include <winppy/Core/SerializeBufferBatchPool.h>
+#include <cassert>
 
 using namespace winppy;
 

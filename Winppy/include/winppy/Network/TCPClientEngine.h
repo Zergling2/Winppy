@@ -1,9 +1,10 @@
 #pragma once
 
-#include <vector>
-#include <memory>
 #include <winppy/Platform/Platform.h>
 #include <winppy/Core/FileLogger.h>
+#include <vector>
+#include <unordered_set>
+#include <memory>
 
 namespace winppy
 {
@@ -29,16 +30,19 @@ namespace winppy
 
 	class TCPClientEngine
 	{
+		friend class TCPClient;
 	private:
 		struct WorkerThreadContext
 		{
 		public:
 			WorkerThreadContext()
-				: m_pFileLogger(nullptr)
+				: m_pEngine(nullptr)
+				, m_pFileLogger(nullptr)
 				, m_hIoCompletionPort(NULL)
 			{
 			}
 		public:
+			TCPClientEngine* m_pEngine;
 			FileLogger* m_pFileLogger;
 			HANDLE m_hIoCompletionPort;
 		};
@@ -49,6 +53,12 @@ namespace winppy
 		int Init(const TCPClientEngineConfig& desc);
 		void Release();
 	private:
+		void DirectDisconnect(TCPClient& client);
+		void ReleaseClient(TCPClient& client);
+		void DoClientReleaseJob(TCPClient& client);
+		void OnReceiveData(TCPClient& client, size_t numOfBytesTransferred);
+		void PostRecv(TCPClient& client);
+		void PostSend(TCPClient& client);
 		static unsigned int __stdcall WorkerThreadEntry(void* pArg);
 	private:
 		bool m_init;

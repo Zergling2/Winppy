@@ -1,9 +1,9 @@
 #pragma once
 
+#include <winppy/Platform/Platform.h>
 #include <cstdint>
 #include <cstddef>
 #include <cstring>
-#include <winppy/Platform/Platform.h>
 
 namespace winppy
 {
@@ -176,7 +176,7 @@ namespace winppy
 		uint32_t GetRefCount() const { return m_ctrlBlock.m_refCount; }
 
 		/**
-		* @brief 네트워크를 통해 전송되는 데이터 시작 주소를 반환합니다. 라이브러리 사용자는 이 함수를 호출하지 마세요.
+		* @brief 네트워크를 통해 전송되는 데이터 시작 주소를 반환합니다. 라이브러리 사용자는 이 함수를 호출하는 것을 권장하지 않습니다.
 		* 
 		* (응용 프로그램 계층 헤더 + 데이터 주소)
 		*/

@@ -1,7 +1,7 @@
 #include <winppy/Core/SendQueue.h>
-#include <cassert>
 #include <winppy/Core/SerializeBuffer.h>
 #include <winppy/Common/Math.h>
+#include <cassert>
 
 using namespace winppy;
 

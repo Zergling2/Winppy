@@ -1,7 +1,7 @@
 #include <winppy/Core/FileLogger.h>
+#include <winppy/Platform/Platform.h>
 #include <strsafe.h>
 #include <cstdarg>
-#include <winppy/Platform/Platform.h>
 
 using namespace winppy;
 

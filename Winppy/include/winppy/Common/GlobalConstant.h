@@ -11,4 +11,5 @@ namespace winppy
 	constexpr uint32_t SEND_QUEUE_SIZE_MIN = 1u << 7;
 	constexpr uint32_t SEND_QUEUE_SIZE_MAX = 1u << 9;
 	constexpr uint32_t DEFAULT_HEADER_CODE = 0x5f3759df;
+	constexpr size_t WSABUF_LEN_MAX = 64;
 }

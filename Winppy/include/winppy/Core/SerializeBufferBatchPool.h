@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <winppy/Platform/Platform.h>
+#include <vector>
 
 namespace winppy
 {
@@ -19,7 +19,7 @@ namespace winppy
 			return s_instance;
 		}
 
-		void SetHeaderCode(uint32_t code) noexcept;
+		void Init(uint32_t code);
 		SerializeBufferBatch* GetFullSerializeBufferBatch();
 		SerializeBufferBatch* GetEmptySerializeBufferBatch();
 		void ReturnFullSerializeBufferBatch(SerializeBufferBatch* pSerBufBatch);

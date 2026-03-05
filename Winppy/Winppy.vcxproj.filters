@@ -69,6 +69,7 @@
     <ClCompile Include="source\Network\TCPClientEngine.cpp">
       <Filter>Project Files\Network</Filter>
     </ClCompile>
+    <ClCompile Include="source\Platform\PlatformNetwork.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\winppy\Common\Alignment.h">
@@ -134,14 +135,12 @@
     <ClInclude Include="include\winppy\Network\TCPClientEngine.h">
       <Filter>Project Files\Network</Filter>
     </ClInclude>
-    <ClInclude Include="include\winppy\Network\ITCPClientEventHandler.h">
-      <Filter>Project Files\Network</Filter>
-    </ClInclude>
     <ClInclude Include="include\winppy\Network\TCPError.h">
       <Filter>Project Files\Network</Filter>
     </ClInclude>
     <ClInclude Include="include\winppy\Platform\Platform.h">
       <Filter>Project Files\Platform</Filter>
     </ClInclude>
+    <ClInclude Include="include\winppy\Platform\PlatformNetwork.h" />
   </ItemGroup>
 </Project>

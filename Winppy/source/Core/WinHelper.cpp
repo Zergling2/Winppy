@@ -1,9 +1,8 @@
 #include <winppy/Core/WinHelper.h>
-#include <WS2tcpip.h>
-#include <strsafe.h>
-#include <process.h>
 #include <winppy/Core/FileLogger.h>
 #include <winppy/Core/LogPrefix.h>
+#include <strsafe.h>
+#include <process.h>
 
 bool winppy::SockAddrToString(const SOCKADDR_STORAGE* pSockAddrStorage, wchar_t* pIPAddrBuf, size_t len, uint16_t* pPort)
 {

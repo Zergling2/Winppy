@@ -1,10 +1,10 @@
 #include <winppy/Core/SerializeBufferBatchPool.h>
-#include <cassert>
 #include <winppy/Core/SerializeBufferBatch.h>
 #include <winppy/Core/SerializeBuffer.h>
 #include <winppy/Core/SRWLock.h>
 #include <winppy/Core/Debug.h>
 #include <winppy/Core/LogPrefix.h>
+#include <cassert>
 
 using namespace winppy;
 
@@ -27,21 +27,6 @@ SerializeBufferBatchPool::SerializeBufferBatchPool()
 	m_vm.reserve(64);
 	m_fullBatch.reserve(64);
 	m_emptyBatch.reserve(64);
-
-	// const size_t initialCount = static_cast<size_t>(m_si.dwNumberOfProcessors * 1.5);
-	const size_t initialCount = m_si.dwNumberOfProcessors;	// Worker threads & Content threads... 평균적인 최소 예상치
-	
-	for (size_t i = 0; i < initialCount; ++i)
-	{
-		SerializeBufferBatch* pNewSerBufBatch = this->CreateFullBatch();
-		m_fullBatch.push_back(pNewSerBufBatch);
-	}
-
-	for (size_t i = 0; i < initialCount; ++i)
-	{
-		SerializeBufferBatch* pNewSerBufBatch = new SerializeBufferBatch();
-		m_emptyBatch.push_back(pNewSerBufBatch);
-	}
 }
 
 SerializeBufferBatchPool::~SerializeBufferBatchPool()
@@ -68,9 +53,24 @@ SerializeBufferBatchPool::~SerializeBufferBatchPool()
 	m_emptyBatch.clear();
 }
 
-void SerializeBufferBatchPool::SetHeaderCode(uint32_t code) noexcept
+void winppy::SerializeBufferBatchPool::Init(uint32_t code)
 {
 	m_headerCode = code;
+
+	// const size_t initialCount = static_cast<size_t>(m_si.dwNumberOfProcessors * 1.5);
+	const size_t initialCount = m_si.dwNumberOfProcessors;	// Worker threads & Content threads... 평균적인 최소 예상치
+
+	for (size_t i = 0; i < initialCount; ++i)
+	{
+		SerializeBufferBatch* pNewSerBufBatch = this->CreateFullBatch();
+		m_fullBatch.push_back(pNewSerBufBatch);
+	}
+
+	for (size_t i = 0; i < initialCount; ++i)
+	{
+		SerializeBufferBatch* pNewSerBufBatch = new SerializeBufferBatch();
+		m_emptyBatch.push_back(pNewSerBufBatch);
+	}
 }
 
 SerializeBufferBatch* SerializeBufferBatchPool::GetFullSerializeBufferBatch()

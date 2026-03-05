@@ -1,7 +1,7 @@
 #pragma once
 
-#include <utility>
 #include <winppy/Core/SerializeBuffer.h>
+#include <utility>
 
 namespace winppy
 {
@@ -49,7 +49,7 @@ namespace winppy
 		SerializeBuffer* Get() { return m_pObj; }
 		const SerializeBuffer* Get() const { return m_pObj; }
 		operator bool() const { return m_pObj != nullptr; }
-	private:
+
 		SerializeBuffer* Detach() { return std::exchange(m_pObj, nullptr); }
 	private:
 		SerializeBuffer* m_pObj;

@@ -37,7 +37,6 @@
     <ClInclude Include="include\winppy\Core\WinHelper.h" />
     <ClInclude Include="include\winppy\Core\SendQueue.h" />
     <ClInclude Include="include\winppy\Core\SRWLock.h" />
-    <ClInclude Include="include\winppy\Network\ITCPClientEventHandler.h" />
     <ClInclude Include="include\winppy\Network\TCPClient.h" />
     <ClInclude Include="include\winppy\Network\TCPClientEngine.h" />
     <ClInclude Include="include\winppy\Network\TCPError.h" />
@@ -51,6 +50,7 @@
     <ClInclude Include="include\winppy\Core\SerializeBufferBatchPool.h" />
     <ClInclude Include="include\winppy\Core\TlsSerializeBufferBatch.h" />
     <ClInclude Include="include\winppy\Platform\Platform.h" />
+    <ClInclude Include="include\winppy\Platform\PlatformNetwork.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Core\LogPrefix.cpp" />
@@ -69,6 +69,7 @@
     <ClCompile Include="source\Network\Packet.cpp" />
     <ClCompile Include="source\Core\TlsSerializeBufferBatch.cpp" />
     <ClCompile Include="source\Network\TCPSession.cpp" />
+    <ClCompile Include="source\Platform\PlatformNetwork.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

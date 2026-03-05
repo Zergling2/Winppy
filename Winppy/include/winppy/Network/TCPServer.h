@@ -1,12 +1,12 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <winppy/Platform/Platform.h>
 #include <winppy/Platform/CPU.h>
 #include <winppy/Common/EndKey.h>
 #include <winppy/Core/FileLogger.h>
 #include <winppy/Network/Packet.h>
+#include <vector>
+#include <string>
 
 namespace winppy
 {
@@ -234,7 +234,7 @@ namespace winppy
 		*/
 		bool Disconnect(uint64_t id);
 	private:
-		void DirectDisconnect(TCPSession& session);	// 이 함수는 세션을 참조 카운트가 1 이상인 경우에만 호출해야 함! (엔진 전용)
+		void DirectDisconnect(TCPSession& session);	// 라이브러리 내부 전용
 		void DisconnectAllSessions();
 		void ReleaseSession(TCPSession& session);
 		void DoSessionReleaseJob(TCPSession& session);

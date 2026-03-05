@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-
 namespace winppy
 {
 	class SerializeBuffer;
@@ -22,7 +20,7 @@ namespace winppy
 		void Push(SerializeBuffer* pSerBuf);
 		SerializeBuffer* Pop();
 	private:
-		std::array<SerializeBuffer*, CAPACITY> m_bufs;
+		SerializeBuffer* m_bufs[CAPACITY];
 		size_t m_size;
 	};
 }

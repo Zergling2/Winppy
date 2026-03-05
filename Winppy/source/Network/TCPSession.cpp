@@ -1,7 +1,7 @@
 #include <winppy/Network/TCPSession.h>
-#include <cassert>
 #include <winppy/Core/SerializeBuffer.h>
 #include <winppy/Core/Debug.h>
+#include <cassert>
 
 using namespace winppy;
 
@@ -16,7 +16,7 @@ TCPSessionInitDesc::TCPSessionInitDesc()
 TCPSession::TCPSession()
 	: m_cancelIo(0)
 	, m_isSending(0)
-	, m_pending(0)
+	, m_numOfPacketsPending(0)
 	, m_id(0)
 	, m_sock(INVALID_SOCKET)
 	, m_recvOverlapped()
@@ -27,7 +27,6 @@ TCPSession::TCPSession()
 {
 	m_flag.m_refCount = 0;
 	m_flag.m_released = 1;	// Released 상태로 시작.
-	InitializeSRWLock(&m_sendQueueLock);
 
 	// 64바이트 경계 검사
 	if (reinterpret_cast<uintptr_t>(this) & (Cache::L1LineSize() - 1 != 0))
@@ -42,10 +41,16 @@ TCPSession::TCPSession()
 
 void TCPSession::Init(const TCPSessionInitDesc& desc)
 {
+	// OVERLAPPED 구조체 초기화
 	ZeroMemory(&m_recvOverlapped, sizeof(m_recvOverlapped));
 	ZeroMemory(&m_sendOverlapped, sizeof(m_sendOverlapped));
+
+	// 버퍼 메모리 바인딩
 	m_recvBuf.BindMem(desc.m_pRecvBufAddr, desc.m_recvBufSize);
 	m_sendQueue.BindMem(desc.m_pSendQueueAddr, desc.m_sendQueueSize);
+
+	// 송신 큐 락 초기화
+	InitializeSRWLock(&m_sendQueueLock);
 }
 
 void TCPSession::Start(const TCPSessionStartDesc& desc)
@@ -55,11 +60,11 @@ void TCPSession::Start(const TCPSessionStartDesc& desc)
 	assert(m_flag.m_releasedAndRefCount == 0x00010000);
 	assert(m_recvBuf.Empty());
 	assert(m_sendQueue.Empty());
-	assert(m_pending == 0);
+	assert(m_numOfPacketsPending == 0);
 
 	m_cancelIo = 0;
 	m_isSending = 0;
-	m_id = desc.m_id;
+	m_id = desc.m_id;	// released 플래그보다 먼저 설정 및 commit 되어야 함.
 	m_sock = desc.m_sock;
 	ZeroMemory(&m_recvOverlapped, sizeof(m_recvOverlapped));
 	ZeroMemory(&m_sendOverlapped, sizeof(m_sendOverlapped));

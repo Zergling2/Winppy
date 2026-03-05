@@ -1,8 +1,8 @@
 #pragma once
 
+#include <winppy/Platform/Platform.h>
 #include <cstddef>
 #include <cstdint>
-#include <winppy/Platform/Platform.h>
 
 namespace winppy
 {

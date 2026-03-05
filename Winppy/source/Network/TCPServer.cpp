@@ -1,9 +1,4 @@
 #include <winppy/Network/TCPServer.h>
-#include <process.h>
-#include <WS2tcpip.h>
-#include <conio.h>
-#include <cassert>
-#include <cstdlib>
 #include <winppy/Network/TCPSession.h>
 #include <winppy/Common/Math.h>
 #include <winppy/Common/GlobalConstant.h>
@@ -13,6 +8,10 @@
 #include <winppy/Core/SRWLock.h>
 #include <winppy/Core/SerializeBuffer.h>
 #include <winppy/Core/SerializeBufferBatchPool.h>
+#include <process.h>
+#include <conio.h>
+#include <cassert>
+#include <cstdlib>
 
 using namespace winppy;
 
@@ -132,8 +131,8 @@ int TCPServer::Run(const TCPServerConfig& desc)
 		// ########################################################################################################
 
 		// ########################################################################################################
-		// 헤더 식별자 코드 설정
-		SerializeBufferBatchPool::GetInstance().SetHeaderCode(m_headerCode);
+		// 직렬화 버퍼 풀 초기화
+		SerializeBufferBatchPool::GetInstance().Init(m_headerCode);
 		// ########################################################################################################
 
 		// ########################################################################################################
@@ -219,22 +218,22 @@ int TCPServer::Run(const TCPServerConfig& desc)
 			break;	// escape do while(false)
 		}
 
-		SOCKADDR_IN serverAddr;
-		ZeroMemory(&serverAddr, sizeof(serverAddr));
-		serverAddr.sin_family = AF_INET;
-		serverAddr.sin_port = htons(desc.m_bindPort);	// 포트 바인딩
+		SOCKADDR_IN bindAddr;
+		ZeroMemory(&bindAddr, sizeof(bindAddr));
+		bindAddr.sin_family = AF_INET;
+		bindAddr.sin_port = htons(desc.m_bindPort);	// 포트 바인딩
 		if (!desc.m_bindAddr)
 		{
-			serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+			bindAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 		}
 		else
 		{
-			INT ret = InetPtonW(AF_INET, desc.m_bindAddr, &serverAddr.sin_addr);
+			INT ret = InetPtonW(AF_INET, desc.m_bindAddr, &bindAddr.sin_addr);
 			if (ret == -1)	// error code can be retrieved by calling the WSAGetLastError for extended error information.
 			{
 				int ec = WSAGetLastError();
 				Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-				m_fileLogger.Write(L"%ls socket failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+				m_fileLogger.Write(L"%ls InetPtonW failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
 				break;	// escape do while(false)
 			}
 			else if (ret == 0)	// if the pszAddrString parameter points to a string that is not a valid IPv4 dotted-decimal string or a valid IPv6 address string.
@@ -248,7 +247,7 @@ int TCPServer::Run(const TCPServerConfig& desc)
 			}
 		}
 
-		if (bind(m_listenSock, reinterpret_cast<sockaddr*>(&serverAddr), static_cast<int>(sizeof(serverAddr))) == SOCKET_ERROR)
+		if (bind(m_listenSock, reinterpret_cast<sockaddr*>(&bindAddr), static_cast<int>(sizeof(bindAddr))) == SOCKET_ERROR)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
@@ -515,6 +514,7 @@ void TCPServer::Send(uint64_t id, Packet packet)
 
 		if (!success)
 		{
+			pSerBuf->Release();
 			this->Disconnect(id);
 			break;
 		}
@@ -522,6 +522,9 @@ void TCPServer::Send(uint64_t id, Packet packet)
 		// B.
 
 		if (InterlockedExchange8(&session.m_isSending, 1) != 0)
+			break;
+
+		if (session.m_cancelIo)
 			break;
 
 		// A ~ B 지점 사이에 스레드가 대기 상태로 전환되었다가 깨어난 경우 다른 스레드가 송신을 했을 수 있다. PostSend 함수 내에서 큐가 비어있을 수 있음.
@@ -559,7 +562,6 @@ bool TCPServer::Disconnect(uint64_t id)
 			case ERROR_NOT_FOUND:
 				break;
 			default:
-				int ec = WSAGetLastError();
 				m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 				break;
 			}
@@ -576,9 +578,10 @@ bool TCPServer::Disconnect(uint64_t id)
 
 void TCPServer::DirectDisconnect(TCPSession& session)
 {
-	assert(session.m_flag.m_refCount > 0);
 	// Disconnect(uint64_t) 함수의 Interlock 오버헤드를 생략시킨 함수
 
+	// 이 함수는 유효 세션을 참조중인 경우에만 호출되었어야 한다. (참조 카운트 1 이상)
+	assert(session.m_flag.m_refCount > 0);
 	assert(session.m_flag.m_released == 0);
 
 	InterlockedExchange8(&session.m_cancelIo, 1);
@@ -592,7 +595,6 @@ void TCPServer::DirectDisconnect(TCPSession& session)
 		case ERROR_NOT_FOUND:
 			break;
 		default:
-			int ec = WSAGetLastError();
 			m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 			break;
 		}
@@ -674,7 +676,7 @@ void TCPServer::OnReceiveData(TCPSession& session, size_t numOfBytesTransferred)
 {
 	// 이 함수는 반드시 재진입 가능 함수여야 한다.
 
-	ReceiveBuffer rb = session.GetReceiveBuffer();
+	ReceiveBuffer& rb = session.GetReceiveBuffer();
 	rb.AdvanceWriteCursor(numOfBytesTransferred);	// 쓰기 커서 전진.
 
 	// 직렬화 버퍼의 m_size가 수신 버퍼 크기보다 크면 절대 안됨.
@@ -690,14 +692,14 @@ void TCPServer::OnReceiveData(TCPSession& session, size_t numOfBytesTransferred)
 
 		if (header.m_code != m_headerCode)						// 비정상 패킷
 		{
-			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid header code: 0x%08x.\n", LogPrefixString::Info(), header.m_code);
+			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid header code: 0x%08x.\n", LogPrefixString::Warning(), header.m_code);
 			DirectDisconnect(session);
 			break;
 		}
 
 		if (header.m_size > SerializeBuffer::Capacity())		// 비정상 패킷
 		{
-			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid payload size: %uBytes.\n", LogPrefixString::Info(), header.m_size);
+			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid payload size: %uBytes.\n", LogPrefixString::Warning(), header.m_size);
 			DirectDisconnect(session);
 			break;
 		}
@@ -769,7 +771,6 @@ void TCPServer::PostRecv(TCPSession& session)
 					case ERROR_NOT_FOUND:
 						break;
 					default:
-						int ec = WSAGetLastError();
 						m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 						break;
 					}
@@ -778,7 +779,7 @@ void TCPServer::PostRecv(TCPSession& session)
 			break;
 		default:	// Any other error code indicates that the overlapped operation was not successfully initiated and 'no completion indication will occur'.
 			// 예시) WSARecv를 걸기 전 RST가 도착해있는 경우, ...
-			m_fileLogger.Write(L"%ls WSARecv failed with error: %d. End connection with session.\n", LogPrefixString::Fail(), ec);
+			m_fileLogger.Write(L"%ls WSARecv failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(session);
 			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
 				this->ReleaseSession(session);
@@ -791,19 +792,19 @@ void TCPServer::PostSend(TCPSession& session)
 {
 	// 이 함수는 반드시 재진입 가능 함수여야 한다.
 
-	WSABUF wsaBufs[SEND_QUEUE_SIZE_MAX];
-	SerializeBuffer* pSerBufs[SEND_QUEUE_SIZE_MAX];
+	WSABUF wsaBufs[WSABUF_LEN_MAX];
+	SerializeBuffer* pSerBufs[WSABUF_LEN_MAX];
 
 	SendQueue& sq = session.GetSendQueue();
 	AcquireSRWLockExclusive(session.GetSendQueueLock());
-	const size_t packetCount = sq.Size();
-	sq.Peek(pSerBufs, sq.Size());
+	const size_t numOfPacketsToSend = (std::min)(sq.Size(), WSABUF_LEN_MAX);
+	sq.Peek(pSerBufs, numOfPacketsToSend);
 	ReleaseSRWLockExclusive(session.GetSendQueueLock());
 
-	assert(packetCount < (std::numeric_limits<uint16_t>::max)());
+	assert(numOfPacketsToSend < (std::numeric_limits<uint16_t>::max)());
 
 	// SendQueue에 패킷을 Push하고 SendFlag를 켜는 과정이 원자적이지 않기 때문에 그 사이에 다른 스레드가 PostSend를 하여 SendQueue가 비어있을 수 있다.
-	if (packetCount == 0)
+	if (numOfPacketsToSend == 0)
 	{
 		CHAR ret = InterlockedExchange8(&session.m_isSending, 0);
 		if (ret != 1)	// 심각한 결함
@@ -812,17 +813,17 @@ void TCPServer::PostSend(TCPSession& session)
 		return;
 	}
 
-	for (size_t i = 0; i < packetCount; ++i)
+	for (size_t i = 0; i < numOfPacketsToSend; ++i)
 	{
 		wsaBufs[i].buf = static_cast<CHAR*>(const_cast<void*>(pSerBufs[i]->Message()));
 		wsaBufs[i].len = static_cast<ULONG>(pSerBufs[i]->SizeIncludingHeader());
 	}
-	session.m_pending = static_cast<uint16_t>(packetCount);		// 이 변수에 대한 접근은 isSending 플래그 인터락 매커니즘으로 단일 스레드만 변경을 보장해야 함.
+	session.m_numOfPacketsPending = static_cast<uint16_t>(numOfPacketsToSend);		// 이 변수에 대한 접근은 isSending 플래그 인터락 매커니즘으로 단일 스레드만 변경을 보장해야 함.
 
 	// 동기, 비동기 모두 완료 포트로 완료통지가 온다.
 	ZeroMemory(session.GetSendOverlapped(), sizeof(WSAOVERLAPPED));
 	InterlockedIncrement16(&session.m_flag.m_refCount);
-	int ioResult = WSASend(session.GetSocket(), wsaBufs, static_cast<DWORD>(packetCount), nullptr, 0, session.GetSendOverlapped(), nullptr);
+	int ioResult = WSASend(session.GetSocket(), wsaBufs, static_cast<DWORD>(numOfPacketsToSend), nullptr, 0, session.GetSendOverlapped(), nullptr);
 	if (ioResult == SOCKET_ERROR)
 	{
 		int ec = WSAGetLastError();
@@ -842,7 +843,6 @@ void TCPServer::PostSend(TCPSession& session)
 					case ERROR_NOT_FOUND:
 						break;
 					default:
-						int ec = WSAGetLastError();
 						m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 						break;
 					}
@@ -850,7 +850,7 @@ void TCPServer::PostSend(TCPSession& session)
 			}
 			break;
 		default:	// Any other error code indicates that the overlapped operation was not successfully initiated and 'no completion indication will occur'.
-			m_fileLogger.Write(L"%ls WSASend failed with error: %d. End connection with session.", LogPrefixString::Fail(), ec);
+			m_fileLogger.Write(L"%ls WSASend failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(session);
 			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
 				this->ReleaseSession(session);
@@ -1030,7 +1030,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 			pServer->PostRecv(session);
 		} while (false);
 
-		if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// Line 779에 대응하는 Dec
+		if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)
 			pServer->ReleaseSession(session);
 	}
 
@@ -1074,7 +1074,7 @@ unsigned int __stdcall TCPServer::WorkerThreadEntry(void* pArg)
 			}
 			else if (overlappedEntry.lpOverlapped == session.GetSendOverlapped())	// Send 완료 처리
 			{
-				const size_t transmitted = session.m_pending;
+				const size_t transmitted = session.m_numOfPacketsPending;
 				SendQueue& sq = session.GetSendQueue();
 				AcquireSRWLockExclusive(session.GetSendQueueLock());
 				assert(sq.Size() >= transmitted);
@@ -1089,7 +1089,7 @@ unsigned int __stdcall TCPServer::WorkerThreadEntry(void* pArg)
 				// 이 멤버 변수에 대한 접근은 isSending 플래그 인터락 매커니즘으로 단일 스레드만 변경을 보장해야 함.
 				// isSending 플래그를 먼저 끄고 이 변수를 변경하면 isSending 플래그가 꺼진 순간 다른 스레드의 PostSend 및 Send 완료통지 루틴이 실행되어
 				// 데이터 경쟁이 발생하게 된다.
-				session.m_pending = 0;
+				session.m_numOfPacketsPending = 0;
 
 				InterlockedExchange8(&session.m_isSending, 0);
 

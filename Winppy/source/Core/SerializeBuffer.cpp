@@ -1,9 +1,9 @@
 #include <winppy/Core/SerializeBuffer.h>
-#include <cassert>
 #include <winppy/Common/Alignment.h>
 #include <winppy/Common/Math.h>
 #include <winppy/Common/GlobalConstant.h>
 #include <winppy/Core/TlsSerializeBufferBatch.h>
+#include <cassert>
 
 using namespace winppy;
 
