@@ -240,7 +240,7 @@ void TCPClient::Disconnect()
 		if (m_flag.m_released)
 			break;
 
-		// if (m_state != ClientState::Connected)	// m_flag.m_release or 이 플래그 둘 중 하나만 확인해도 됨.
+		// if (m_state != ClientState::Connected)	// released or 이 플래그 둘 중 하나만 확인해도 됨.
 		// 	break;
 
 		InterlockedExchange8(&m_cancelIo, 1);
@@ -277,6 +277,9 @@ void TCPClient::Send(Packet packet)
 	{
 		if (m_flag.m_released)
 			break;
+
+		// if (m_state != ClientState::Connected)	// released or 이 플래그 둘 중 하나만 확인해도 됨.
+		// 	break;
 
 		SerializeBuffer* pSerBuf = packet.Detach();				// 참조 카운트 유지하면서 Packet 객체로부터 분리.
 		AcquireSRWLockExclusive(&m_sendQueueLock);
