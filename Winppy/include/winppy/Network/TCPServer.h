@@ -128,7 +128,7 @@ namespace winppy
 		/**
 		* @brief 서버 인스턴스를 초기화하고 실행합니다.
 		* @param desc 설정 디스크립터.
-		* @return 성공한 경우 0, 실패한 경우 -1을 반환합니다.
+		* @return 성공한 경우 0, 실패한 경우 0이 아닌 값을 반환합니다.
 		*/
 		int Run(const TCPServerConfig& desc);
 

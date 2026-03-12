@@ -256,9 +256,12 @@ void TCPClientEngine::DoClientReleaseJob(TCPClient& client)
 
 	// 소켓 닫기
 	closesocket(client.m_sock);
+	client.m_sock = INVALID_SOCKET;
 
-	// release 플래그 꺼서 재연결 허용
-	InterlockedExchange16(&client.m_flag.m_released, 0);
+	// 재연결을 가능하게 하기 위해 플래그 복구
+	client.m_cancelIo = 0;
+
+	InterlockedExchange16(reinterpret_cast<short*>(&client.m_state), static_cast<short>(ClientState::Idle));
 }
 
 void TCPClientEngine::OnReceiveData(TCPClient& client, size_t numOfBytesTransferred)
@@ -508,8 +511,10 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 			else if (overlappedEntry.lpOverlapped == &client.m_connOverlapped)
 			{
 				setsockopt(client.m_sock, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0);
-				InterlockedExchange8(&client.m_connecting, 0);
-				InterlockedExchange16(&client.m_flag.m_released, 0);
+				assert(client.m_state == ClientState::Connecting);
+				InterlockedExchange16(reinterpret_cast<short*>(&client.m_state), static_cast<short>(ClientState::Connected));
+				InterlockedExchange16(&client.m_flag.m_released, 0);	// Release 작업 큐잉 이후 ~ 재연결 시점(현재 코드)까지 1이므로 다시 0으로 설정해서
+				// 참조 카운트 플래그 시스템과 이상없이 돌아가게 해야한다.
 
 				InterlockedIncrement16(&client.m_flag.m_refCount);
 
@@ -517,11 +522,6 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 
 				if (client.m_cancelIo == 0)
 					pEngine->PostRecv(client);
-
-				if (InterlockedDecrement16(&client.m_flag.m_refCount) == 0)
-					pEngine->ReleaseClient(client);
-
-				continue;
 			}
 			else
 			{
@@ -530,10 +530,14 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 				// assert(client.m_flag.m_refCount == 0 && client.m_flag.m_released == 1);
 				assert(client.m_flag.m_releasedAndRefCount == 0x00010000);
 
-				client.OnDisconnect();	// 재연결했는데 OnDisconnect 함수가 뒤늦게 호출되는 경우를 예방하려면 DoClientReleaseJob 이전에 이벤트 함수를 호출해주어야 한다.
+				client.OnDisconnect();	// DoClientReleaseJob 이후에 호출해주게 되면 유저가 새로운 연결을 수립한 이후
+				// 흐름상 뒤늦게 이전 연결의 종료에 대한 OnDisconnect 콜백이 호출될 수 있으므로 DoClientReleaseJob보다 먼저 호출해준다.
+				// DoClientReleaseJob 함수가 수행된 이후에는 다른 스레드에서 얼마든지 새로운 연결을 수립할 수 있으므로 이후 루틴에서 접근해서도 안된다.
 
 				pEngine->DoClientReleaseJob(client);
-				continue;	// InterlockedDecrement16(&client.m_flag.m_refCount) 실행 루트로 가면 절대 안됨! (이미 0이 되어서 작업이 예약되었으므로.)
+				// 현재 스레드에서 client에 더 이상 접근 금지!
+
+				continue;	// InterlockedDecrement16(&client.m_flag.m_refCount) 실행 루트로 가면 절대 안됨! (이미 0이 되어서 이 루틴으로 왔으므로.)
 			}
 		}
 		else
@@ -571,7 +575,8 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 
 				if (overlappedEntry.lpOverlapped == &client.m_connOverlapped)
 				{
-					InterlockedExchange8(&client.m_connecting, 0);
+					assert(client.m_state == ClientState::Connecting);
+					InterlockedExchange16(reinterpret_cast<short*>(&client.m_state), static_cast<short>(ClientState::Idle));// ClientState Idle로 변경 후에는 접근 금지! (다른 스레드에서 접근 가능)
 					continue;
 				}
 			}

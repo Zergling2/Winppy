@@ -29,6 +29,13 @@ namespace winppy
 		bool m_zeroByteSendBuf;
 	};
 
+	enum class ClientState : short
+	{
+		Idle,		// 새로운 연결을 수립할 수 있는 상태.
+		Connecting,	// 비동기 연결이 진행중인 상태.
+		Connected	// 연결이 수립된 상태.
+	};
+
 	class TCPClient
 	{
 		friend class TCPClientEngine;
@@ -55,6 +62,13 @@ namespace winppy
 		void Disconnect();
 
 		/**
+		* @brief 현재 연결 상태를 조회합니다.
+		* 
+		* @return 현재 연결 상태에 대한 열거형 타입입니다. 자세한 사항은 ClientState 열거형을 참조하세요.
+		*/
+		ClientState GetState() const { return m_state; }
+
+		/**
 		* @brief 원격 호스트에 패킷을 송신합니다. 이 함수로 전달한 패킷은 더 이상 수정해서는 안됩니다.
 		* 
 		* @param packet 송신할 패킷.
@@ -75,26 +89,24 @@ namespace winppy
 		* @brief 연결이 끊어진 경우 호출됩니다. 이 함수 내에서 즉시 재연결을 호출하는 경우 실패합니다.
 		*/
 		virtual void OnDisconnect() = 0;
-
-		bool IsConnected() const { return m_flag.m_released == 0; }
 	private:
 		union
 		{
 			struct
 			{
 				short m_refCount;	// X. 반드시 동일 캐시 라인에 위치시켜야 함. (0xabcd)
-				short m_released;	// Y. 반드시 동일 캐시 라인에 위치시켜야 함. (0x1234)
+				volatile short m_released;	// Y. 반드시 동일 캐시 라인에 위치시켜야 함. (0x1234)
 			};
 			long m_releasedAndRefCount;	// 메모리 레이아웃: (0x1234 abcd)
 		}m_flag;	// 인터락 동기화 단위가 하드웨어 레벨에서 최소한 캐시 라인 단위로 되는 플랫폼에서만 가능한 방법. (대표적으로 x86, AMD64 아키텍쳐...)
 		char m_cancelIo;
 		char m_isSending;
+		ClientState m_state;
 		uint16_t m_numOfPacketsPending;	// I/O pending packet count (이 변수에 대한 접근은 isSending 플래그 인터락 매커니즘으로 단일 스레드만 변경을 보장해야 함.)
 		
 		bool m_init;
 		bool m_tcpNoDelay;
 		bool m_zeroByteSendBuf;
-		char m_connecting;			// 라이브러리구현)연결 시도 시 독점 스레드가 1로 설정, 연결 해제되었을 시 다시 0으로 설정. 연결 실패 시 0으로 설정해줘야 새 연결 시도할 수 있음. 연결 성공 시 
 		TCPClientEngine* m_pEngine;
 		uint32_t m_recvBufSize;
 		uint32_t m_sendQueueSize;

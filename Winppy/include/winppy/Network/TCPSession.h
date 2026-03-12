@@ -49,7 +49,7 @@ namespace winppy
 			struct
 			{
 				short m_refCount;	// X. 반드시 동일 캐시 라인에 위치시켜야 함. (0xabcd)
-				short m_released;	// Y. 반드시 동일 캐시 라인에 위치시켜야 함. (0x1234)
+				volatile short m_released;	// Y. 반드시 동일 캐시 라인에 위치시켜야 함. (0x1234)
 			};
 			long m_releasedAndRefCount;	// 메모리 레이아웃: (0x1234 abcd)
 		}m_flag;	// 인터락 동기화 단위가 하드웨어 레벨에서 최소한 캐시 라인 단위로 되는 플랫폼에서만 가능한 방법. (대표적으로 x86, AMD64 아키텍쳐...)

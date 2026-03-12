@@ -25,11 +25,11 @@ TCPClientInitDesc::TCPClientInitDesc()
 TCPClient::TCPClient()
 	: m_cancelIo(0)
 	, m_isSending(0)
+	, m_state(ClientState::Idle)
 	, m_numOfPacketsPending(0)
 	, m_init(false)
 	, m_tcpNoDelay(false)
 	, m_zeroByteSendBuf(false)
-	, m_connecting(0)
 	, m_pEngine(nullptr)
 	, m_recvBufSize(0)
 	, m_sendQueueSize(0)
@@ -92,6 +92,9 @@ void TCPClient::Release()
 {
 	this->Disconnect();	// Safely disconnect.
 
+	while (m_state != ClientState::Idle)	// SessionReleaseJob 완료를 대기
+		Sleep(1);
+
 	if (m_recvBuf.IsValid())
 	{
 		// m_recvBuf.Clear();
@@ -118,17 +121,24 @@ void TCPClient::Release()
 bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 {
 	wchar_t logMsgBuf[128];
-	bool result = false;
+	bool connReqSuccess = false;
 	SOCKET sock = INVALID_SOCKET;
 
 	do
 	{
-		// 스레드 안전
-		if (InterlockedExchange8(&m_connecting, 1) != 0)
+		if (InterlockedCompareExchange16(
+			reinterpret_cast<short*>(&m_state),
+			static_cast<short>(ClientState::Connecting),
+			static_cast<short>(ClientState::Idle)
+		) != static_cast<short>(ClientState::Idle))
 			break;
+
+		assert(m_flag.m_released == 1);
 
 		if (!ip)
 			break;
+
+		assert(m_sock == INVALID_SOCKET);
 
 		// 소켓 생성
 		sock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
@@ -139,6 +149,7 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 			wprintf(L"%ls WSASocket failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
 			break;
 		}
+		m_sock = sock;
 
 		// IOCP와 연결
 		if (!AssociateDeviceWithCompletionPort(m_pEngine->m_hIoCompletionPort, reinterpret_cast<HANDLE>(sock), reinterpret_cast<ULONG_PTR>(this)))
@@ -186,7 +197,7 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 			switch (ec)
 			{
 			case WSA_IO_PENDING:
-				result = true;
+				connReqSuccess = true;
 				break;
 			default:
 				Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
@@ -196,23 +207,27 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 		}
 		else
 		{
-			result = true;
-			// 동기적 성공도 IOCP 완료통지 항목 전달됨.
+			connReqSuccess = true;	// 동기적 성공도 IOCP 완료통지 항목 전달됨.
 		}
 	} while (false);
 
 	// 생성한 자원 해제
-	if (!result)
+	if (!connReqSuccess)
 	{
-		if (sock != INVALID_SOCKET)
-			closesocket(sock);
-	}
-	else
-	{
-		m_sock = sock;
+		if (m_sock != INVALID_SOCKET)
+		{
+			closesocket(m_sock);
+			m_sock = INVALID_SOCKET;
+		}
+
+		InterlockedCompareExchange16(
+			reinterpret_cast<short*>(&m_state),
+			static_cast<short>(ClientState::Idle),
+			static_cast<short>(ClientState::Connecting)
+		);// ClientState Idle로 변경 후에는 접근 금지! (다른 스레드에서 접근 가능)
 	}
 
-	return result;
+	return connReqSuccess;
 }
 
 void TCPClient::Disconnect()
@@ -224,6 +239,9 @@ void TCPClient::Disconnect()
 	{
 		if (m_flag.m_released)
 			break;
+
+		// if (m_state != ClientState::Connected)	// m_flag.m_release or 이 플래그 둘 중 하나만 확인해도 됨.
+		// 	break;
 
 		InterlockedExchange8(&m_cancelIo, 1);
 		if (CancelIoEx(reinterpret_cast<HANDLE>(m_sock), nullptr) == FALSE)
