@@ -88,36 +88,6 @@ int TCPClient::Init(const TCPClientInitDesc& desc)
 	return result;
 }
 
-void TCPClient::Release()
-{
-	this->Disconnect();	// Safely disconnect.
-
-	while (m_state != ClientState::Idle)	// SessionReleaseJob 완료를 대기
-		Sleep(1);
-
-	if (m_recvBuf.IsValid())
-	{
-		// m_recvBuf.Clear();
-
-		uint8_t* pRecvBuf = m_recvBuf.UnbindMem();
-		assert(pRecvBuf);
-		delete[] pRecvBuf;
-	}
-
-	if (m_sendQueue.IsValid())
-	{
-		while (!m_sendQueue.Empty())	// 잔여 직렬화 버퍼 해제
-		{
-			SerializeBuffer* pSerBuf = m_sendQueue.Pop();
-			pSerBuf->Release();
-		}
-
-		SerializeBuffer** pSendBuf = m_sendQueue.UnbindMem();
-		assert(pSendBuf);
-		delete[] pSendBuf;
-	}
-}
-
 bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 {
 	wchar_t logMsgBuf[128];
@@ -232,7 +202,6 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 
 void TCPClient::Disconnect()
 {
-	bool result = false;
 	InterlockedIncrement16(&m_flag.m_refCount);		// 세션 유효성 확인 참조
 
 	do
@@ -244,6 +213,27 @@ void TCPClient::Disconnect()
 		// 	break;
 
 		InterlockedExchange8(&m_cancelIo, 1);
+		while (CancelIoEx(reinterpret_cast<HANDLE>(m_sock), nullptr) == FALSE)
+		{
+			bool escape = false;
+			// 파일 핸들이 완료 포트와 연결되어 있는 경우, 동기 작업이 성공적으로 취소되면 I/O 완료 패킷이 해당 포트에 대기열에 추가되지 않습니다.
+			// 하지만 아직 보류 중인 비동기 작업의 경우, 취소 작업으로 인해 I/O 완료 패킷이 대기열에 추가됩니다.
+			DWORD ec = GetLastError();
+			switch (ec)
+			{
+			case ERROR_NOT_FOUND:
+				escape = true;
+				break;
+			default:
+				// m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+				break;
+			}
+
+			if (escape)
+				break;
+		}
+
+		/*
 		if (CancelIoEx(reinterpret_cast<HANDLE>(m_sock), nullptr) == FALSE)
 		{
 			// 파일 핸들이 완료 포트와 연결되어 있는 경우, 동기 작업이 성공적으로 취소되면 I/O 완료 패킷이 해당 포트에 대기열에 추가되지 않습니다.
@@ -254,12 +244,12 @@ void TCPClient::Disconnect()
 			case ERROR_NOT_FOUND:
 				break;
 			default:
+				result = false;
 				// m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 				break;
 			}
 		}
-
-		result = true;
+		*/
 	} while (false);
 
 	if (InterlockedDecrement16(&m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
@@ -311,5 +301,25 @@ void TCPClient::Send(Packet packet)
 
 TCPClient::~TCPClient()
 {
-	this->Release();
+	if (m_recvBuf.IsValid())
+	{
+		// m_recvBuf.Clear();
+
+		uint8_t* pRecvBuf = m_recvBuf.UnbindMem();
+		assert(pRecvBuf);
+		delete[] pRecvBuf;
+	}
+
+	if (m_sendQueue.IsValid())
+	{
+		while (!m_sendQueue.Empty())	// 잔여 직렬화 버퍼 해제
+		{
+			SerializeBuffer* pSerBuf = m_sendQueue.Pop();
+			pSerBuf->Release();
+		}
+
+		SerializeBuffer** pSendBuf = m_sendQueue.UnbindMem();
+		assert(pSendBuf);
+		delete[] pSendBuf;
+	}
 }

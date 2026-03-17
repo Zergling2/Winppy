@@ -44,7 +44,6 @@ namespace winppy
 		~TCPClient();
 
 		int Init(const TCPClientInitDesc& desc);
-		void Release();
 
 		/**
 		* @brief 지정된 원격 호스트에 연결을 시도합니다. 이 함수는 비동기 연결을 시도하므로 함수의 반환 시점에 연결 결과를 보장할 수 없습니다.

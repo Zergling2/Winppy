@@ -535,9 +535,8 @@ void TCPServer::Send(uint64_t id, Packet packet)
 		this->ReleaseSession(session);
 }
 
-bool TCPServer::Disconnect(uint64_t id)
+void TCPServer::Disconnect(uint64_t id)
 {
-	bool result = false;
 	TCPSession& session = m_pSessions[ComputeSessionIndex(id)];
 	InterlockedIncrement16(&session.m_flag.m_refCount);		// 세션 유효성 확인 참조
 
@@ -566,14 +565,10 @@ bool TCPServer::Disconnect(uint64_t id)
 				break;
 			}
 		}
-
-		result = true;
 	} while (false);
 
 	if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
 		this->ReleaseSession(session);
-
-	return result;
 }
 
 void TCPServer::DirectDisconnect(TCPSession& session)

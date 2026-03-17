@@ -239,6 +239,7 @@ void TCPClientEngine::ReleaseClient(TCPClient& client)
 void TCPClientEngine::DoClientReleaseJob(TCPClient& client)
 {
 	// 이 함수는 반드시 재진입 가능 함수여야 한다.
+	
 
 	// 수신 버퍼 클리어
 	ReceiveBuffer& rb = client.m_recvBuf;
@@ -259,7 +260,6 @@ void TCPClientEngine::DoClientReleaseJob(TCPClient& client)
 	client.m_sock = INVALID_SOCKET;
 
 	// 재연결을 가능하게 하기 위해 플래그 복구
-	client.m_cancelIo = 0;
 
 	InterlockedExchange16(reinterpret_cast<short*>(&client.m_state), static_cast<short>(ClientState::Idle));
 }
@@ -512,6 +512,7 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 			{
 				setsockopt(client.m_sock, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0);
 				assert(client.m_state == ClientState::Connecting);
+				client.m_cancelIo = 0;
 				InterlockedExchange16(reinterpret_cast<short*>(&client.m_state), static_cast<short>(ClientState::Connected));
 				InterlockedExchange16(&client.m_flag.m_released, 0);	// Release 작업 큐잉 이후 ~ 재연결 시점(현재 코드)까지 1이므로 다시 0으로 설정해서
 				// 참조 카운트 플래그 시스템과 이상없이 돌아가게 해야한다.

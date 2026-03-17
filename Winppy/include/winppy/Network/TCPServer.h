@@ -230,9 +230,8 @@ namespace winppy
 		* @brief 세션과의 연결을 종료합니다.
 		* 
 		* @param id 연결을 종료할 세션의 식별자.
-		* @return 성공 시 true, 실패 시 false를 반환합니다. 전달한 세션 id가 유효하지 않을 경우 함수는 실패합니다.
 		*/
-		bool Disconnect(uint64_t id);
+		void Disconnect(uint64_t id);
 	private:
 		void DirectDisconnect(TCPSession& session);	// 라이브러리 내부 전용
 		void DisconnectAllSessions();
