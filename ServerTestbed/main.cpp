@@ -19,7 +19,7 @@ public:
 
 bool TCPEchoServer::OnConnect(const wchar_t* ip, uint16_t port, uint64_t id)
 {
-	wprintf(L"New Session: %ls:%u. Id: %llu\n", ip, static_cast<uint32_t>(port), id);
+	wprintf(L"New Session: %s:%u. Id: %llu\n", ip, static_cast<uint32_t>(port), id);
 
 	return true;
 }
@@ -28,7 +28,7 @@ void TCPEchoServer::OnReceive(uint64_t id, winppy::Packet packet)
 {
 	InterlockedIncrement(&g_tps);
 	// const wchar_t* pStr = reinterpret_cast<const wchar_t*>(packet->Payload());
-	// wprintf(L"%ls\n", pStr);
+	// wprintf(L"%s\n", pStr);
 	this->Send(id, std::move(packet));
 }
 

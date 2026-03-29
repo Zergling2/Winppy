@@ -54,7 +54,7 @@ bool FileLogger::Write(const wchar_t* fmt, ...)
     va_end(args);
 
     // Windows _wfopen ccs=UTF-8 확장기능으로 자동 인코딩 변환 및 저장
-    fwprintf_s(m_file, L"%ls %ls", logTime, logMsg);
+    fwprintf_s(m_file, L"%s %s", logTime, logMsg);
 
     return true;
 }

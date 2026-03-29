@@ -79,8 +79,8 @@ int TCPClientEngine::Init(const TCPClientEngineConfig& desc)
 		m_numOfConcurrentThreads = desc.m_numOfConcurrentThreads == 0 ? m_si.dwNumberOfProcessors : desc.m_numOfConcurrentThreads;
 
 		// 조정된 설정값 로그 출력
-		m_fileLogger.Write(L"%ls Number of worker threads: %u\n", LogPrefixString::Info(), m_numOfWorkerThreads);
-		m_fileLogger.Write(L"%ls Number of concurrent threads: %u\n", LogPrefixString::Info(), m_numOfConcurrentThreads);
+		m_fileLogger.Write(L"%s Number of worker threads: %u\n", LogPrefixString::Info(), m_numOfWorkerThreads);
+		m_fileLogger.Write(L"%s Number of concurrent threads: %u\n", LogPrefixString::Info(), m_numOfConcurrentThreads);
 		// ########################################################################################################
 
 		// ########################################################################################################
@@ -95,7 +95,7 @@ int TCPClientEngine::Init(const TCPClientEngineConfig& desc)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			m_fileLogger.Write(L"%ls CreateIoCompletionPort failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+			m_fileLogger.Write(L"%s CreateIoCompletionPort failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 			break;	// escape do while(false)
 		}
 		// ########################################################################################################
@@ -182,7 +182,7 @@ void TCPClientEngine::Release()
 	m_workerThreadContext.m_hIoCompletionPort = NULL;
 
 
-	m_fileLogger.Write(L"%ls TCPClientEngine has been shutdown.\n", LogPrefixString::Info());
+	m_fileLogger.Write(L"%s TCPClientEngine has been shutdown.\n", LogPrefixString::Info());
 
 	// 파일 로거 리소스 해제
 	m_fileLogger.Close();
@@ -208,7 +208,7 @@ void TCPClientEngine::DirectDisconnect(TCPClient& client)
 		case ERROR_NOT_FOUND:
 			break;
 		default:
-			m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+			m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 			break;
 		}
 	}
@@ -232,7 +232,7 @@ void TCPClientEngine::ReleaseClient(TCPClient& client)
 	if (PostClientReleaseJob(m_hIoCompletionPort, client) == FALSE)
 	{
 		DWORD ec = GetLastError();
-		m_fileLogger.Write(L"%ls PostQueuedCompletionStatus failed with error: %lu.\n", LogPrefixString::Error(), ec);
+		m_fileLogger.Write(L"%s PostQueuedCompletionStatus failed with error: %lu.\n", LogPrefixString::Error(), ec);
 	}
 }
 
@@ -284,14 +284,14 @@ void TCPClientEngine::OnReceiveData(TCPClient& client, size_t numOfBytesTransfer
 
 		if (header.m_code != m_headerCode)						// 비정상 패킷
 		{
-			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid header code: 0x%08x.\n", LogPrefixString::Info(), header.m_code);
+			m_fileLogger.Write(L"%s Packet marshaling failed. Invalid header code: 0x%08x.\n", LogPrefixString::Info(), header.m_code);
 			DirectDisconnect(client);
 			break;
 		}
 
 		if (header.m_size > SerializeBuffer::Capacity())		// 비정상 패킷
 		{
-			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid payload size: %uBytes.\n", LogPrefixString::Info(), header.m_size);
+			m_fileLogger.Write(L"%s Packet marshaling failed. Invalid payload size: %uBytes.\n", LogPrefixString::Info(), header.m_size);
 			DirectDisconnect(client);
 			break;
 		}
@@ -363,7 +363,7 @@ void TCPClientEngine::PostRecv(TCPClient& client)
 					case ERROR_NOT_FOUND:
 						break;
 					default:
-						m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+						m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 						break;
 					}
 				}
@@ -371,7 +371,7 @@ void TCPClientEngine::PostRecv(TCPClient& client)
 			break;
 		default:	// Any other error code indicates that the overlapped operation was not successfully initiated and 'no completion indication will occur'.
 			// 예시) WSARecv를 걸기 전 RST가 도착해있는 경우, ...
-			m_fileLogger.Write(L"%ls WSARecv failed with error: %d. Terminate the connection.\n", LogPrefixString::Fail(), ec);
+			m_fileLogger.Write(L"%s WSARecv failed with error: %d. Terminate the connection.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(client);
 			if (InterlockedDecrement16(&client.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
 				this->ReleaseClient(client);
@@ -435,14 +435,14 @@ void TCPClientEngine::PostSend(TCPClient& client)
 					case ERROR_NOT_FOUND:
 						break;
 					default:
-						m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+						m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 						break;
 					}
 				}
 			}
 			break;
 		default:	// Any other error code indicates that the overlapped operation was not successfully initiated and 'no completion indication will occur'.
-			m_fileLogger.Write(L"%ls WSASend failed with error: %d. Terminate the connection.\n", LogPrefixString::Fail(), ec);
+			m_fileLogger.Write(L"%s WSASend failed with error: %d. Terminate the connection.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(client);
 			if (InterlockedDecrement16(&client.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
 				this->ReleaseClient(client);
@@ -554,10 +554,10 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 				switch (ec)
 				{
 				case ERROR_ABANDONED_WAIT_0:
-					fileLogger.Write(L"%ls The completion port is closed. Exit the worker thread.\n", LogPrefixString::Info());
+					fileLogger.Write(L"%s The completion port is closed. Exit the worker thread.\n", LogPrefixString::Info());
 					break;
 				default:
-					fileLogger.Write(L"%ls Exit the worker thread due to an unexpected problem: %lu.\n", LogPrefixString::Error(), ec);
+					fileLogger.Write(L"%s Exit the worker thread due to an unexpected problem: %lu.\n", LogPrefixString::Error(), ec);
 					break;
 				}
 
@@ -572,7 +572,7 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 				* 확장된 오류 정보를 얻으려면 GetLastError를 호출하십시오.
 				*/
 				// PostSend, PostRecv 생략 -> Client 해제.
-				wprintf(L"%ls Failed I/O completion status: %u.\n", LogPrefixString::Error(), ec);
+				wprintf(L"%s Failed I/O completion status: %u.\n", LogPrefixString::Error(), ec);
 
 				if (overlappedEntry.lpOverlapped == &client.m_connOverlapped)
 				{

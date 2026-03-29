@@ -45,21 +45,21 @@ HANDLE winppy::LogBeginThreadEx(FileLogger& fileLogger, void* pSecurity, unsigne
 		switch (errno)
 		{
 		case EAGAIN:	// if there are too many threads
-			fileLogger.Write(L"%ls _beginthreadex failed. (too many threads)\n", LogPrefixString::Error());
+			fileLogger.Write(L"%s _beginthreadex failed. (too many threads)\n", LogPrefixString::Error());
 			break;
 		case EINVAL:	// if the argument is invalid or the stack size is incorrect
-			fileLogger.Write(L"%ls _beginthreadex failed. (argument is invalid or the stack size is incorrect)\n", LogPrefixString::Error());
+			fileLogger.Write(L"%s _beginthreadex failed. (argument is invalid or the stack size is incorrect)\n", LogPrefixString::Error());
 			break;
 		case EACCES:	// if there are insufficient resources (such as memory)
-			fileLogger.Write(L"%ls _beginthreadex failed. (insufficient resources (such as memory))\n", LogPrefixString::Error());
+			fileLogger.Write(L"%s _beginthreadex failed. (insufficient resources (such as memory))\n", LogPrefixString::Error());
 			break;
 		default:
-			fileLogger.Write(L"%ls _beginthreadex failed. (unknown reasons)\n", LogPrefixString::Error());
+			fileLogger.Write(L"%s _beginthreadex failed. (unknown reasons)\n", LogPrefixString::Error());
 			break;
 		}
 		break;
 	case 0:
-		fileLogger.Write(L"%ls _beginthreadex failed. (_doserrno: %d)\n", LogPrefixString::Error(), _doserrno);
+		fileLogger.Write(L"%s _beginthreadex failed. (_doserrno: %d)\n", LogPrefixString::Error(), _doserrno);
 		break;
 	default:
 		hNewThread = reinterpret_cast<HANDLE>(ret);

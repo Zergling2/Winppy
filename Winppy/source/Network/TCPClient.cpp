@@ -116,7 +116,7 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			wprintf(L"%ls WSASocket failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+			wprintf(L"%s WSASocket failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 			break;
 		}
 		m_sock = sock;
@@ -135,7 +135,7 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			wprintf(L"%ls bind failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+			wprintf(L"%s bind failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 			break;
 		}
 
@@ -149,12 +149,12 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			wprintf(L"%ls InetPtonW failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+			wprintf(L"%s InetPtonW failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 			break;
 		}
 		else if (ret == 0)	// if the pszAddrString parameter points to a string that is not a valid IPv4 dotted-decimal string or a valid IPv6 address string.
 		{
-			wprintf(L"%ls %ls is not a valid IPv4 dotted-decimal string.\n", LogPrefixString::Fail(), ip);
+			wprintf(L"%s %s is not a valid IPv4 dotted-decimal string.\n", LogPrefixString::Fail(), ip);
 			break;
 		}
 
@@ -171,7 +171,7 @@ bool TCPClient::Connect(const wchar_t* ip, uint16_t port)
 				break;
 			default:
 				Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-				wprintf(L"%ls ConnectEx failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+				wprintf(L"%s ConnectEx failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 				break;
 			}
 		}
@@ -225,7 +225,7 @@ void TCPClient::Disconnect()
 				escape = true;
 				break;
 			default:
-				// m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+				// m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 				break;
 			}
 
@@ -245,7 +245,7 @@ void TCPClient::Disconnect()
 				break;
 			default:
 				result = false;
-				// m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+				// m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 				break;
 			}
 		}

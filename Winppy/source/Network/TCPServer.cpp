@@ -123,11 +123,11 @@ int TCPServer::Run(const TCPServerConfig& desc)
 		m_zeroByteSendBuf = desc.m_zeroByteSendBuf;
 
 		// 조정된 설정값 로그 출력
-		m_fileLogger.Write(L"%ls Maximum session count: %u\n", LogPrefixString::Info(), m_maxSessionCount);
-		m_fileLogger.Write(L"%ls Session receive buffer size: %u\n", LogPrefixString::Info(), m_sessionRecvBufSize);
-		m_fileLogger.Write(L"%ls Session send queue size: %u\n", LogPrefixString::Info(), m_sessionSendQueueSize);
-		m_fileLogger.Write(L"%ls Number of worker threads: %u\n", LogPrefixString::Info(), m_numOfWorkerThreads);
-		m_fileLogger.Write(L"%ls Number of concurrent threads: %u\n", LogPrefixString::Info(), m_numOfConcurrentThreads);
+		m_fileLogger.Write(L"%s Maximum session count: %u\n", LogPrefixString::Info(), m_maxSessionCount);
+		m_fileLogger.Write(L"%s Session receive buffer size: %u\n", LogPrefixString::Info(), m_sessionRecvBufSize);
+		m_fileLogger.Write(L"%s Session send queue size: %u\n", LogPrefixString::Info(), m_sessionSendQueueSize);
+		m_fileLogger.Write(L"%s Number of worker threads: %u\n", LogPrefixString::Info(), m_numOfWorkerThreads);
+		m_fileLogger.Write(L"%s Number of concurrent threads: %u\n", LogPrefixString::Info(), m_numOfConcurrentThreads);
 		// ########################################################################################################
 
 		// ########################################################################################################
@@ -144,10 +144,10 @@ int TCPServer::Run(const TCPServerConfig& desc)
 		{
 			DWORD ec = GetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			m_fileLogger.Write(L"%ls VirtualAlloc failed with error: %lu. %ls\n", LogPrefixString::Fatal(), ec, logMsgBuf);
+			m_fileLogger.Write(L"%s VirtualAlloc failed with error: %lu. %s\n", LogPrefixString::Fatal(), ec, logMsgBuf);
 			break;	// escape do while(false)
 		}
-		m_fileLogger.Write(L"%ls VirtualAlloc memory allocation: %zuKiB. (Session RecvBufs)\n", LogPrefixString::Info(), recvBufMemSize / Math::OneKiB());
+		m_fileLogger.Write(L"%s VirtualAlloc memory allocation: %zuKiB. (Session RecvBufs)\n", LogPrefixString::Info(), recvBufMemSize / Math::OneKiB());
 		// 2. 세션 송신 큐 메모리 할당
 		const size_t sendQueueMemSize = static_cast<size_t>(m_maxSessionCount) * m_sessionSendQueueSize * sizeof(SerializeBuffer*);
 		m_pLargeMemSendQueue = VirtualAlloc(nullptr, sendQueueMemSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -155,17 +155,17 @@ int TCPServer::Run(const TCPServerConfig& desc)
 		{
 			DWORD ec = GetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			m_fileLogger.Write(L"%ls VirtualAlloc failed with error: %lu. %ls\n", LogPrefixString::Fatal(), ec, logMsgBuf);
+			m_fileLogger.Write(L"%s VirtualAlloc failed with error: %lu. %s\n", LogPrefixString::Fatal(), ec, logMsgBuf);
 			break;	// escape do while(false)
 		}
-		m_fileLogger.Write(L"%ls VirtualAlloc memory allocation: %zuBytes. (Session SendQueues)\n", LogPrefixString::Info(), sendQueueMemSize);
+		m_fileLogger.Write(L"%s VirtualAlloc memory allocation: %zuBytes. (Session SendQueues)\n", LogPrefixString::Info(), sendQueueMemSize);
 
 
 		// 2. 세션 인스턴스 생성 및 초기화
 		m_pSessions = static_cast<TCPSession*>(_aligned_malloc_dbg(sizeof(TCPSession) * m_maxSessionCount, alignof(TCPSession), __FILE__, __LINE__));
 		if (!m_pSessions)
 		{
-			m_fileLogger.Write(L"%ls _aligned_malloc failed.\n", LogPrefixString::Fatal());
+			m_fileLogger.Write(L"%s _aligned_malloc failed.\n", LogPrefixString::Fatal());
 			break;	// escape do while(false)
 		}
 
@@ -202,7 +202,7 @@ int TCPServer::Run(const TCPServerConfig& desc)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			m_fileLogger.Write(L"%ls CreateIoCompletionPort failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+			m_fileLogger.Write(L"%s CreateIoCompletionPort failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 			break;	// escape do while(false)
 		}
 		// ########################################################################################################
@@ -214,7 +214,7 @@ int TCPServer::Run(const TCPServerConfig& desc)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			m_fileLogger.Write(L"%ls socket failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+			m_fileLogger.Write(L"%s socket failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 			break;	// escape do while(false)
 		}
 
@@ -233,12 +233,12 @@ int TCPServer::Run(const TCPServerConfig& desc)
 			{
 				int ec = WSAGetLastError();
 				Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-				m_fileLogger.Write(L"%ls InetPtonW failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+				m_fileLogger.Write(L"%s InetPtonW failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 				break;	// escape do while(false)
 			}
 			else if (ret == 0)	// if the pszAddrString parameter points to a string that is not a valid IPv4 dotted-decimal string or a valid IPv6 address string.
 			{
-				m_fileLogger.Write(L"%ls %ls is not a valid IPv4 dotted-decimal string.\n", LogPrefixString::Fail(), desc.m_bindAddr);
+				m_fileLogger.Write(L"%s %s is not a valid IPv4 dotted-decimal string.\n", LogPrefixString::Fail(), desc.m_bindAddr);
 				break;	// escape do while(false)
 			}
 			else
@@ -251,7 +251,7 @@ int TCPServer::Run(const TCPServerConfig& desc)
 		{
 			int ec = WSAGetLastError();
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			m_fileLogger.Write(L"%ls bind failed with error: %d. %ls\n", LogPrefixString::Fail(), ec, logMsgBuf);
+			m_fileLogger.Write(L"%s bind failed with error: %d. %s\n", LogPrefixString::Fail(), ec, logMsgBuf);
 			break;	// escape do while(false)
 		}
 		m_bindAddr = desc.m_bindAddr == nullptr ? L"INADDR_ANY" : desc.m_bindAddr;
@@ -341,8 +341,8 @@ int TCPServer::Run(const TCPServerConfig& desc)
 	}
 	else
 	{
-		m_fileLogger.Write(L"%ls Bind Address: %ls, Port: %u\n", LogPrefixString::Info(), m_bindAddr.c_str(), static_cast<uint32_t>(m_bindPort));
-		m_fileLogger.Write(L"%ls Server is running...\n", LogPrefixString::Info());
+		m_fileLogger.Write(L"%s Bind Address: %s, Port: %u\n", LogPrefixString::Info(), m_bindAddr.c_str(), static_cast<uint32_t>(m_bindPort));
+		m_fileLogger.Write(L"%s Server is running...\n", LogPrefixString::Info());
 
 		const char* endKeyStr;
 		switch (desc.m_endKey)
@@ -480,7 +480,7 @@ void TCPServer::Shutdown()
 	m_bindPort = 0;
 	m_bindAddr.clear();
 
-	m_fileLogger.Write(L"%ls Server has been shutdown.\n", LogPrefixString::Info());
+	m_fileLogger.Write(L"%s Server has been shutdown.\n", LogPrefixString::Info());
 
 	// 파일 로거 리소스 해제
 	m_fileLogger.Close();
@@ -561,7 +561,7 @@ void TCPServer::Disconnect(uint64_t id)
 			case ERROR_NOT_FOUND:
 				break;
 			default:
-				m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+				m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 				break;
 			}
 		}
@@ -590,7 +590,7 @@ void TCPServer::DirectDisconnect(TCPSession& session)
 		case ERROR_NOT_FOUND:
 			break;
 		default:
-			m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+			m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 			break;
 		}
 	}
@@ -598,7 +598,7 @@ void TCPServer::DirectDisconnect(TCPSession& session)
 
 void TCPServer::DisconnectAllSessions()
 {
-	m_fileLogger.Write(L"%ls Disconnect with all sessions...\n", LogPrefixString::Info());
+	m_fileLogger.Write(L"%s Disconnect with all sessions...\n", LogPrefixString::Info());
 
 	// accept 후 세션 초기화중인 경우는 아래 반복문에서 잡아내지 못할 수 있음..
 	for (uint32_t i = 0; i < m_maxSessionCount; ++i)
@@ -629,7 +629,7 @@ void TCPServer::ReleaseSession(TCPSession& session)
 	if (PostSessionReleaseJob(m_hIoCompletionPort, session) == FALSE)
 	{
 		DWORD ec = GetLastError();
-		m_fileLogger.Write(L"%ls PostQueuedCompletionStatus failed with error: %lu.\n", LogPrefixString::Error(), ec);
+		m_fileLogger.Write(L"%s PostQueuedCompletionStatus failed with error: %lu.\n", LogPrefixString::Error(), ec);
 	}
 }
 
@@ -687,14 +687,14 @@ void TCPServer::OnReceiveData(TCPSession& session, size_t numOfBytesTransferred)
 
 		if (header.m_code != m_headerCode)						// 비정상 패킷
 		{
-			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid header code: 0x%08x.\n", LogPrefixString::Warning(), header.m_code);
+			m_fileLogger.Write(L"%s Packet marshaling failed. Invalid header code: 0x%08x.\n", LogPrefixString::Warning(), header.m_code);
 			DirectDisconnect(session);
 			break;
 		}
 
 		if (header.m_size > SerializeBuffer::Capacity())		// 비정상 패킷
 		{
-			m_fileLogger.Write(L"%ls Packet marshaling failed. Invalid payload size: %uBytes.\n", LogPrefixString::Warning(), header.m_size);
+			m_fileLogger.Write(L"%s Packet marshaling failed. Invalid payload size: %uBytes.\n", LogPrefixString::Warning(), header.m_size);
 			DirectDisconnect(session);
 			break;
 		}
@@ -766,7 +766,7 @@ void TCPServer::PostRecv(TCPSession& session)
 					case ERROR_NOT_FOUND:
 						break;
 					default:
-						m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+						m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 						break;
 					}
 				}
@@ -774,7 +774,7 @@ void TCPServer::PostRecv(TCPSession& session)
 			break;
 		default:	// Any other error code indicates that the overlapped operation was not successfully initiated and 'no completion indication will occur'.
 			// 예시) WSARecv를 걸기 전 RST가 도착해있는 경우, ...
-			m_fileLogger.Write(L"%ls WSARecv failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
+			m_fileLogger.Write(L"%s WSARecv failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(session);
 			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
 				this->ReleaseSession(session);
@@ -838,14 +838,14 @@ void TCPServer::PostSend(TCPSession& session)
 					case ERROR_NOT_FOUND:
 						break;
 					default:
-						m_fileLogger.Write(L"%ls CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
+						m_fileLogger.Write(L"%s CancelIoEx failed with error: %lu.\n", LogPrefixString::Warning(), ec);
 						break;
 					}
 				}
 			}
 			break;
 		default:	// Any other error code indicates that the overlapped operation was not successfully initiated and 'no completion indication will occur'.
-			m_fileLogger.Write(L"%ls WSASend failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
+			m_fileLogger.Write(L"%s WSASend failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(session);
 			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
 				this->ReleaseSession(session);
@@ -880,7 +880,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 	{
 		int ec = WSAGetLastError();
 		Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-		fileLogger.Write(L"%ls listen failed with error: %d. %ls\n", LogPrefixString::Fail(), ec, logMsgBuf);
+		fileLogger.Write(L"%s listen failed with error: %d. %s\n", LogPrefixString::Fail(), ec, logMsgBuf);
 		return -1;
 	}
 	wprintf(L"Server is listening...\n");
@@ -898,7 +898,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 				exit = true;
 
 			Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-			fileLogger.Write(L"%ls accept failed with error: %d. %ls\n", LogPrefixString::Error(), ec, logMsgBuf);
+			fileLogger.Write(L"%s accept failed with error: %d. %s\n", LogPrefixString::Error(), ec, logMsgBuf);
 			continue;
 		}
 
@@ -923,7 +923,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 			if (readySessionIndex == (std::numeric_limits<uint32_t>::max)())	// 가용 세션 인덱스를 획득하지 못한 경우
 			{
 
-				wprintf_s(L"%ls Connection denied due to exceeding the maximum number of available sessions. Remote address: %ls:%u.\n",
+				wprintf_s(L"%s Connection denied due to exceeding the maximum number of available sessions. Remote address: %s:%u.\n",
 					LogPrefixString::Info(), ipAddrBuf, static_cast<uint32_t>(port));
 				break;	// escape do while(false)
 			}
@@ -936,7 +936,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 				{
 					int ec = WSAGetLastError();
 					// Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-					fileLogger.Write(L"%ls setsockopt failed with error(trying to apply TCP_NODELAY option): %d.\n", LogPrefixString::Fail(), ec);
+					fileLogger.Write(L"%s setsockopt failed with error(trying to apply TCP_NODELAY option): %d.\n", LogPrefixString::Fail(), ec);
 					break;	// escape do while(false)
 				}
 			}
@@ -949,7 +949,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 				{
 					int ec = WSAGetLastError();
 					// Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-					fileLogger.Write(L"%ls setsockopt failed with error(trying to apply SO_SNDBUF option): %d.\n", LogPrefixString::Fail(), ec);
+					fileLogger.Write(L"%s setsockopt failed with error(trying to apply SO_SNDBUF option): %d.\n", LogPrefixString::Fail(), ec);
 					break;	// escape do while(false)
 				}
 			}
@@ -959,7 +959,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 			{
 				int ec = WSAGetLastError();
 				// Debug::GetWinErrString(ec, logMsgBuf, _countof(logMsgBuf));
-				fileLogger.Write(L"%ls setsockopt failed with error(trying to apply linger option): %d.\n", LogPrefixString::Fail(), ec);
+				fileLogger.Write(L"%s setsockopt failed with error(trying to apply linger option): %d.\n", LogPrefixString::Fail(), ec);
 				break;	// escape do while(false)
 			}
 
@@ -967,7 +967,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 			if (!AssociateDeviceWithCompletionPort(hIoCompletionPort, reinterpret_cast<HANDLE>(sock), reinterpret_cast<ULONG_PTR>(pSessions + readySessionIndex)))
 			{
 				DWORD ec = GetLastError();
-				fileLogger.Write(L"%ls AssociateDeviceWithCompletionPort failed with error: %lu.\n", LogPrefixString::Fail(), ec);
+				fileLogger.Write(L"%s AssociateDeviceWithCompletionPort failed with error: %lu.\n", LogPrefixString::Fail(), ec);
 				break;	// escape do while(false)
 			}
 
@@ -978,7 +978,7 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 				if (SetFileCompletionNotificationModes(reinterpret_cast<HANDLE>(sock), FILE_SKIP_COMPLETION_PORT_ON_SUCCESS) == FALSE)
 				{
 					DWORD ec = GetLastError();
-					fileLogger.Write(L"%ls SetFileCompletionNotificationModes failed with error. %lu.\n", LogPrefixString::Error(), ec);
+					fileLogger.Write(L"%s SetFileCompletionNotificationModes failed with error. %lu.\n", LogPrefixString::Error(), ec);
 					break;
 				}
 			}
@@ -1121,10 +1121,10 @@ unsigned int __stdcall TCPServer::WorkerThreadEntry(void* pArg)
 				switch (ec)
 				{
 				case ERROR_ABANDONED_WAIT_0:
-					fileLogger.Write(L"%ls The completion port is closed. Exit the worker thread.\n", LogPrefixString::Info());
+					fileLogger.Write(L"%s The completion port is closed. Exit the worker thread.\n", LogPrefixString::Info());
 					break;
 				default:
-					fileLogger.Write(L"%ls Exit the worker thread due to an unexpected problem: %lu.\n", LogPrefixString::Error(), ec);
+					fileLogger.Write(L"%s Exit the worker thread due to an unexpected problem: %lu.\n", LogPrefixString::Error(), ec);
 					break;
 				}
 
@@ -1139,7 +1139,7 @@ unsigned int __stdcall TCPServer::WorkerThreadEntry(void* pArg)
 				* 확장된 오류 정보를 얻으려면 GetLastError를 호출하십시오.
 				*/
 				// PostSend, PostRecv 생략 -> Session 해제.
-				wprintf(L"%ls Failed I/O completion status: %u.\n", LogPrefixString::Error(), ec);
+				wprintf(L"%s Failed I/O completion status: %u.\n", LogPrefixString::Error(), ec);
 			}
 		}
 
