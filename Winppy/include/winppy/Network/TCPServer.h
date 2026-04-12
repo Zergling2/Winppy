@@ -232,6 +232,10 @@ namespace winppy
 		* @param id 연결을 종료할 세션의 식별자.
 		*/
 		void Disconnect(uint64_t id);
+
+		bool GetIP(uint64_t id, wchar_t* pBuf, size_t len);
+		bool GetPort(uint64_t id, uint16_t& port);
+		bool GetIPAndPort(uint64_t id, wchar_t* pBuf, size_t len, uint16_t& port);
 	private:
 		void DirectDisconnect(TCPSession& session);	// 라이브러리 내부 전용
 		void DisconnectAllSessions();

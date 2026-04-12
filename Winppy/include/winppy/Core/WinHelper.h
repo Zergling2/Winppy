@@ -27,7 +27,7 @@ namespace winppy
 	* @param pPort 포트 번호를 전달받을 버퍼.
 	* @return 성공 시 true, 실패 시 false를 반환합니다. 버퍼의 길이가 충분하지 않거나 주소 구조체에 유효하지 않은 값이 있을 경우 함수는 실패합니다.
 	*/
-	bool SockAddrToString(const SOCKADDR_STORAGE* pSockAddrStorage, wchar_t* pIPAddrBuf, size_t len, uint16_t* pPort);
+	bool SockAddrToString(const SOCKADDR_STORAGE& sockAddrStorage, wchar_t* pIPAddrBuf, size_t len, uint16_t& port);
 
 	HANDLE LogBeginThreadEx(FileLogger& fileLogger, void* pSecurity, unsigned int stackSize, unsigned int(__stdcall* pStartAddress)(void*),
 		void* pArgList, unsigned int initFlag, unsigned int* pThrdAddr);

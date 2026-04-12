@@ -4,19 +4,19 @@
 #include <strsafe.h>
 #include <process.h>
 
-bool winppy::SockAddrToString(const SOCKADDR_STORAGE* pSockAddrStorage, wchar_t* pIPAddrBuf, size_t len, uint16_t* pPort)
+bool winppy::SockAddrToString(const SOCKADDR_STORAGE& sockAddrStorage, wchar_t* pIPAddrBuf, size_t len, uint16_t& port)
 {
     bool result;
 
-    switch (pSockAddrStorage->ss_family)
+    switch (sockAddrStorage.ss_family)
     {
     case AF_INET:
-        result = InetNtopW(AF_INET, &reinterpret_cast<const SOCKADDR_IN*>(pSockAddrStorage)->sin_addr, pIPAddrBuf, len) != nullptr;
-        *pPort = ntohs(reinterpret_cast<const SOCKADDR_IN*>(pSockAddrStorage)->sin_port);
+        result = InetNtopW(AF_INET, &reinterpret_cast<const SOCKADDR_IN&>(sockAddrStorage).sin_addr, pIPAddrBuf, len) != nullptr;
+        port = ntohs(reinterpret_cast<const SOCKADDR_IN&>(sockAddrStorage).sin_port);
         break;
     case AF_INET6:
-        result = InetNtopW(AF_INET6, &reinterpret_cast<const SOCKADDR_IN6*>(pSockAddrStorage)->sin6_addr, pIPAddrBuf, len) != nullptr;
-        *pPort = ntohs(reinterpret_cast<const SOCKADDR_IN6*>(pSockAddrStorage)->sin6_port);
+        result = InetNtopW(AF_INET6, &reinterpret_cast<const SOCKADDR_IN6&>(sockAddrStorage).sin6_addr, pIPAddrBuf, len) != nullptr;
+        port = ntohs(reinterpret_cast<const SOCKADDR_IN6&>(sockAddrStorage).sin6_port);
         break;
     default:
         result = false;

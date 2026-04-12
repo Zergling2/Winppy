@@ -571,6 +571,51 @@ void TCPServer::Disconnect(uint64_t id)
 		this->ReleaseSession(session);
 }
 
+bool TCPServer::GetIP(uint64_t id, wchar_t* pBuf, size_t len)
+{
+	uint16_t port;
+	return GetIPAndPort(id, pBuf, len, port);
+}
+
+bool TCPServer::GetPort(uint64_t id, uint16_t& port)
+{
+	wchar_t buf[INET_ADDRSTRLEN];
+	return GetIPAndPort(id, buf, _countof(buf), port);
+}
+
+bool TCPServer::GetIPAndPort(uint64_t id, wchar_t* pBuf, size_t len, uint16_t& port)
+{
+	bool result = false;
+
+	TCPSession& session = m_pSessions[ComputeSessionIndex(id)];
+	InterlockedIncrement16(&session.m_flag.m_refCount);		// 세션 유효성 확인 참조
+
+	do
+	{
+		// 세션 Start 코드에서 released 플래그가 Interlocked초기화되기 때문에 released가 0으로 읽힌 시점에 id는 반드시 새 세션의 id임이 보장됨.
+		if (session.m_flag.m_released)
+			break;
+
+		_ReadWriteBarrier();	// 세션 초기화 과정에서 id가 먼저 초기화, released 플래그가 나중에 초기화되기 때문에 엇갈리게 읽어야 한다.
+
+		if (session.GetId() != id)
+			break;
+
+		const errno_t e = wcscpy_s(pBuf, len, session.GetIP());
+		if (e != 0)
+			break;
+
+		port = session.GetPort();
+
+		result = true;
+	} while (false);
+
+	if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
+		this->ReleaseSession(session);
+
+	return result;
+}
+
 void TCPServer::DirectDisconnect(TCPSession& session)
 {
 	// Disconnect(uint64_t) 함수의 Interlock 오버헤드를 생략시킨 함수
@@ -905,7 +950,8 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 		wchar_t ipAddrBuf[INET_ADDRSTRLEN];
 		uint16_t port = 0;
 		ipAddrBuf[0] = '\0';
-		winppy::SockAddrToString(&clientAddr, ipAddrBuf, _countof(ipAddrBuf), &port);
+		bool ret = winppy::SockAddrToString(clientAddr, ipAddrBuf, _countof(ipAddrBuf), port);
+		assert(ret);
 
 		bool success = false;
 		uint32_t readySessionIndex = (std::numeric_limits<uint32_t>::max)();	// 감시값으로 초기화
@@ -1004,6 +1050,8 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 		TCPSessionStartDesc desc;
 		desc.m_id = (static_cast<uint64_t>(++idCounter) << 32) | static_cast<uint64_t>(readySessionIndex);
 		desc.m_sock = sock;
+		desc.m_ip = ipAddrBuf;
+		desc.m_port = port;
 		session.Start(desc);
 		InterlockedIncrement(pSessionCount);
 

@@ -19,6 +19,8 @@ TCPSession::TCPSession()
 	, m_numOfPacketsPending(0)
 	, m_id(0)
 	, m_sock(INVALID_SOCKET)
+	, m_ip{}
+	, m_port(0)
 	, m_recvOverlapped()
 	, m_recvBuf()
 	, m_sendOverlapped()
@@ -66,9 +68,12 @@ void TCPSession::Start(const TCPSessionStartDesc& desc)
 	m_isSending = 0;
 	m_id = desc.m_id;	// released 플래그보다 먼저 설정 및 commit 되어야 함.
 	m_sock = desc.m_sock;
+	wcscpy_s(m_ip, desc.m_ip);
+	m_port = desc.m_port;
 	ZeroMemory(&m_recvOverlapped, sizeof(m_recvOverlapped));
 	ZeroMemory(&m_sendOverlapped, sizeof(m_sendOverlapped));
 
+	// _ReadWriteBarrier (아래 released 플래그 인터락이 역할 겸함.)
 	InterlockedExchange16(&m_flag.m_released, 0);	// 메모리 장벽, id 설정 메모리에 반영 후 released 플래그 변경 (반드시 인터락으로 설정해야 함)
 	// 반드시 m_flag.m_relased가 m_id 보다 먼저 store되는 식의 컴파일러 재배치를 막아야만 함.
 	// x86은 일단 의존성 없는 변수들간에 한해서 load가 store를 앞지르는 경우 외에는 하드웨어 재배치는 없으므로 괜찮으나 컴파일러의 명령어 재배치를 막으려면
