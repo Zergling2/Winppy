@@ -3,7 +3,7 @@ Winppy는 Guppy C++ 게임 서버 라이브러리의 Windows 버전입니다.
 ![Winppy logo](images/logo.png)
 
 ## Features
-Guppy 네트워크 라이브러리는 고성능 게임 서버 및 클라이언트 개발에 사용할 목적으로 개발되고 있으며, Windows 운영체제의 효율적인 입출력 처리모델인 I/O Completion Port를 이용하여 구현되어 있습니다.
+Guppy 네트워크 라이브러리는 게임 서버 및 클라이언트를 위한 고성능 네트워크 라이브러리로 사용되기 위한 목적으로 개발되고 있습니다.
 
 주요 기능:
 - 직렬화 버퍼 송신/수신
