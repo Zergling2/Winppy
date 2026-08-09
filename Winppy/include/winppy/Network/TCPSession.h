@@ -25,8 +25,7 @@ namespace winppy
 	public:
 		uint64_t m_id;
 		SOCKET m_sock;
-		wchar_t* m_ip;
-		uint16_t m_port;
+		SOCKADDR_IN m_addr;
 	};
 
 	class alignas(Cache::L1LineSize()) TCPSession
@@ -40,8 +39,9 @@ namespace winppy
 
 		uint64_t GetId() const { return m_id; }
 		SOCKET GetSocket() const { return m_sock; }
-		const wchar_t* GetIP() const { return m_ip; }
-		uint16_t GetPort() const { return m_port; }
+		bool GetIPStr(wchar_t* pBuf, size_t len) const;
+		uint32_t GetIP() const;
+		uint16_t GetPort() const;
 		LPWSAOVERLAPPED GetRecvOverlapped() { return &m_recvOverlapped; }
 		ReceiveBuffer& GetReceiveBuffer() { return m_recvBuf; }
 		LPWSAOVERLAPPED GetSendOverlapped() { return &m_sendOverlapped; }
@@ -63,8 +63,7 @@ namespace winppy
 	private:
 		uint64_t m_id;
 		SOCKET m_sock;
-		wchar_t m_ip[INET_ADDRSTRLEN];
-		uint16_t m_port;
+		SOCKADDR_IN m_addr;
 
 		WSAOVERLAPPED m_recvOverlapped;
 		ReceiveBuffer m_recvBuf;

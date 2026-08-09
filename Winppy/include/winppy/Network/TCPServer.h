@@ -169,33 +169,41 @@ namespace winppy
 
 		/**
 		* @brief 세션당 사용중인 패킷 송신 큐의 크기를 반환합니다.
+		* 
 		* 세션의 패킷 송신 큐에 패킷이 이 함수로 반환되는 값 이상으로 차는 경우 세션과의 연결이 끊긴 것으로 간주되어 연결이 종료됩니다.
+		* 
 		* @return 세션당 사용중인 송신 큐의 크기.
 		*/
 		uint32_t GetSessionSendQueueSize() const { return m_sessionSendQueueSize; }
 
 		/**
 		* @brief 현재 연결된 세션의 수를 반환합니다.
+		* 
 		* @return 현재 연결된 세션의 수.
 		*/
 		uint32_t GetSessionCount() const { return m_sessionCount; }
 
 		/**
 		* @brief 작업자 스레드 수를 반환합니다.
+		* 
 		* @return 작업자 스레드 수.
 		*/
 		uint32_t GetNumberOfWorkerThreads() const { return static_cast<uint32_t>(m_workerThreads.size()); }
 
 		/**
 		* @brief 완료 포트 최대 동시 작업 스레드 수를 반환합니다.
+		* 
 		* @return 완료 포트 최대 동시 작업 스레드 수.
 		*/
 		uint32_t GetNumberOfConcurrentThreads() const { return m_numOfConcurrentThreads; }
 
 		/**
 		* @brief 새로운 세션과의 연결이 시작될 때 호출됩니다. 세션과의 연결을 거부하려는 경우 오버라이딩 함수에서 false, 그렇지 않을 경우 true를 반환하세요.
-		* @param id 세션 식별자.
-		* @return 세션 허용 여부.
+		*
+		* @param ip 접속한 세션의 IP 주소입니다.
+		* @param port 접속한 세션의 호스트 바이트 순서 포트 번호입니다.
+		* @param id 세션 식별자입니다.
+		* @return 세션 허용 여부입니다.
 		*/
 		virtual bool OnConnect(const wchar_t* ip, uint16_t port, uint64_t id) = 0;
 
@@ -233,9 +241,11 @@ namespace winppy
 		*/
 		void Disconnect(uint64_t id);
 
-		bool GetIP(uint64_t id, wchar_t* pBuf, size_t len);
-		bool GetPort(uint64_t id, uint16_t& port);
-		bool GetIPAndPort(uint64_t id, wchar_t* pBuf, size_t len, uint16_t& port);
+		/**
+		* @brief 
+		*/
+		bool GetAddress(uint64_t id, wchar_t* pBuf, size_t len, uint16_t& port);
+		bool GetAddress(uint64_t id, uint32_t& ip, uint16_t& port);
 	private:
 		void DirectDisconnect(TCPSession& session);	// 라이브러리 내부 전용
 		void DisconnectAllSessions();

@@ -19,8 +19,7 @@ TCPSession::TCPSession()
 	, m_numOfPacketsPending(0)
 	, m_id(0)
 	, m_sock(INVALID_SOCKET)
-	, m_ip{}
-	, m_port(0)
+	, m_addr{}
 	, m_recvOverlapped()
 	, m_recvBuf()
 	, m_sendOverlapped()
@@ -68,8 +67,7 @@ void TCPSession::Start(const TCPSessionStartDesc& desc)
 	m_isSending = 0;
 	m_id = desc.m_id;	// released 플래그보다 먼저 설정 및 commit 되어야 함.
 	m_sock = desc.m_sock;
-	wcscpy_s(m_ip, desc.m_ip);
-	m_port = desc.m_port;
+	m_addr = desc.m_addr;
 	ZeroMemory(&m_recvOverlapped, sizeof(m_recvOverlapped));
 	ZeroMemory(&m_sendOverlapped, sizeof(m_sendOverlapped));
 
@@ -77,10 +75,25 @@ void TCPSession::Start(const TCPSessionStartDesc& desc)
 	InterlockedExchange16(&m_flag.m_released, 0);	// 메모리 장벽, id 설정 메모리에 반영 후 released 플래그 변경 (반드시 인터락으로 설정해야 함)
 	// 반드시 m_flag.m_relased가 m_id 보다 먼저 store되는 식의 컴파일러 재배치를 막아야만 함.
 	// x86은 일단 의존성 없는 변수들간에 한해서 load가 store를 앞지르는 경우 외에는 하드웨어 재배치는 없으므로 괜찮으나 컴파일러의 명령어 재배치를 막으려면
-	// 인터락으로 해야 재배치를 안한다.
+	// 인터락으로 해야 재배치를 안한다. (인터락이 암시적으로 컴파일러 재배치까지 막음.)
 	
 	// 이렇게 해야 released 플래그가 바뀐 것을 다른 스레드가 본 순간 m_id는 이미 새 값이 보여짐을 보장할 수 있음.
 	// 버그 시나리오: 특히 다른 스레드가 Disconnect를 호출한 경우 released 플래그가 먼저 0이 되어버리고 재활용된 세션의
 	// 새로운 id값이 다른 스레드에게는 반영되지 않는 경우 그 스레드는 Disconnect 대상 세션이 유효하다고 간주하고 Disconnect 루틴을 완전히 실행해버리게 된다.
 	// 세션 재활용 확인 유무는 반대로 released 플래그 먼저 확인 후 id를 확인하면 된다. (확인 전후로 refCount 증감은 당연)
+}
+
+bool TCPSession::GetIPStr(wchar_t* pBuf, size_t len) const
+{
+	return InetNtopW(AF_INET, &m_addr.sin_addr, pBuf, len) != nullptr;
+}
+
+uint32_t TCPSession::GetIP() const
+{
+	return static_cast<uint32_t>(ntohl(m_addr.sin_addr.s_addr));
+}
+
+uint16_t TCPSession::GetPort() const
+{
+	return ntohs(m_addr.sin_port);
 }

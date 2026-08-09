@@ -4,28 +4,6 @@
 #include <strsafe.h>
 #include <process.h>
 
-bool winppy::SockAddrToString(const SOCKADDR_STORAGE& sockAddrStorage, wchar_t* pIPAddrBuf, size_t len, uint16_t& port)
-{
-    bool result;
-
-    switch (sockAddrStorage.ss_family)
-    {
-    case AF_INET:
-        result = InetNtopW(AF_INET, &reinterpret_cast<const SOCKADDR_IN&>(sockAddrStorage).sin_addr, pIPAddrBuf, len) != nullptr;
-        port = ntohs(reinterpret_cast<const SOCKADDR_IN&>(sockAddrStorage).sin_port);
-        break;
-    case AF_INET6:
-        result = InetNtopW(AF_INET6, &reinterpret_cast<const SOCKADDR_IN6&>(sockAddrStorage).sin6_addr, pIPAddrBuf, len) != nullptr;
-        port = ntohs(reinterpret_cast<const SOCKADDR_IN6&>(sockAddrStorage).sin6_port);
-        break;
-    default:
-        result = false;
-        break;
-    }
-
-    return result;
-}
-
 HANDLE winppy::LogBeginThreadEx(FileLogger& fileLogger, void* pSecurity, unsigned int stackSize, unsigned int(__stdcall* pStartAddress)(void*),
 	void* pArgList, unsigned int initFlag, unsigned int* pThrdAddr)
 {
