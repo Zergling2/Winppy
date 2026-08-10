@@ -9,7 +9,7 @@ BOOL winppy::ConnectEx(SOCKET s, const sockaddr* name, int namelen, PVOID lpSend
 
 	std::call_once(
 		initFlag,
-		[&]()
+		[s]()
 		{
 			GUID guid = WSAID_CONNECTEX;
 			DWORD bytes = 0;
