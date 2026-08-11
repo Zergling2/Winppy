@@ -966,12 +966,9 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 
 		wchar_t ipStr[INET_ADDRSTRLEN];
 		ipStr[0] = L'\0';
-		uint32_t ip = 0;
-		uint16_t port = 0;
 
 		InetNtopW(AF_INET, &clientAddr.sin_addr, ipStr, _countof(ipStr));
-		ip = ntohl(clientAddr.sin_addr.s_addr);
-		port = ntohs(clientAddr.sin_port);
+		const uint16_t port = ntohs(clientAddr.sin_port);
 
 		bool success = false;
 		uint32_t readySessionIndex = (std::numeric_limits<uint32_t>::max)();	// 감시값으로 초기화
