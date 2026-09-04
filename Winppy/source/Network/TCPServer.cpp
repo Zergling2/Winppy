@@ -861,6 +861,8 @@ void TCPServer::PostSend(TCPSession& session)
 	assert(numOfPacketsToSend < (std::numeric_limits<uint16_t>::max)());
 
 	// SendQueue에 패킷을 Push하고 SendFlag를 켜는 과정이 원자적이지 않기 때문에 그 사이에 다른 스레드가 PostSend를 하여 SendQueue가 비어있을 수 있다.
+	// SendQueue Size > 0 인지 확인하는 작업과 send flag를 켜는 작업이 원자적이지 않기 때문에, Send Queue size가 양수임을 보고 PostSend 함수 내로 진입한 경우에도
+	// 아래와 같이 송신 큐가 비어있는 상황이 있을 수 있다. 이것을 예외처리 해주지 않으면 불필요한 Zero Byte Send 완료통지가 발생하게 된다.
 	if (numOfPacketsToSend == 0)
 	{
 		CHAR ret = InterlockedExchange8(&session.m_isSending, 0);
@@ -1158,17 +1160,10 @@ unsigned int __stdcall TCPServer::WorkerThreadEntry(void* pArg)
 				{
 					if (InterlockedExchange8(&session.m_isSending, 1) == 0)		// B. Send Queue에 보낼 패킷이 있다고 판단된 경우 Send Flag 켜기 (인터락 수행)
 					{
-						if (sq.Size() > 0)
-						{
-							// A 파트 확인 후 스레드가 퀀텀 타임 모두 소비 후 다시 Ready 상태로 전환된 직후
-							// 다른 스레드에서 송신을 수행했다가 다시 깨어난 경우 Send Queue가 비어있을 수 있으므로 다시 확인.
-							// (불필요한 Zero Byte Send 완료통지가 발생하는 것을 회피)
-							pServer->PostSend(session);
-						}
-						else
-						{
-							InterlockedExchange8(&session.m_isSending, 0);
-						}
+						// A 코드 실행 후 스레드가 퀀텀 타임 모두 소비 후 다시 Ready 상태로 전환된 직후
+						// 다른 스레드에서 송신을 수행했다가 다시 깨어난 경우 Send Queue가 비어있을 수 있으므로 다시 확인.
+						// (불필요한 Zero Byte Send 완료통지가 발생하는 것을 회피)
+						pServer->PostSend(session);	// 위 사항 체크는 PostSend 함수 내에서 수행한다.
 					}
 				}
 			}
