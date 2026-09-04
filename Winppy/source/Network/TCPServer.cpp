@@ -838,8 +838,13 @@ void TCPServer::PostRecv(TCPSession& session)
 			// 예시) WSARecv를 걸기 전 RST가 도착해있는 경우, ...
 			m_fileLogger.Write(L"%s WSARecv failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(session);
-			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
+			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)
+			{
+				// (입출력 실패 시 완료통지 자체가 오지 않으므로 참조 카운트 여기서 차감.
+				// CancelIo(Ex)에서 동기 작업을 취소해버리는 경우에 IO 완료통지가 발생하지 않는다고 되어있는데,
+				// 이 경우에는 WSASend/Recv 함수가 실패하여 실행 흐름이 이곳으로 오게 될 것이므로 세션 참조 카운트 차감을 문제없이 할 수 있다.)
 				this->ReleaseSession(session);
+			}
 			break;
 		}
 	}
@@ -911,8 +916,13 @@ void TCPServer::PostSend(TCPSession& session)
 		default:	// Any other error code indicates that the overlapped operation was not successfully initiated and 'no completion indication will occur'.
 			m_fileLogger.Write(L"%s WSASend failed with error: %d. Terminate the connection to the session.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(session);
-			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
+			if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)
+			{
+				// (입출력 실패 시 완료통지 자체가 오지 않으므로 참조 카운트 여기서 차감.
+				// CancelIo(Ex)에서 동기 작업을 취소해버리는 경우에 IO 완료통지가 발생하지 않는다고 되어있는데,
+				// 이 경우에는 WSASend/Recv 함수가 실패하여 실행 흐름이 이곳으로 오게 될 것이므로 세션 참조 카운트 차감을 문제없이 할 수 있다.)
 				this->ReleaseSession(session);
+			}
 			break;
 		}
 	}
