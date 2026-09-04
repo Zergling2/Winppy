@@ -1153,11 +1153,24 @@ unsigned int __stdcall TCPServer::WorkerThreadEntry(void* pArg)
 				InterlockedExchange8(&session.m_isSending, 0);
 
 				// AcquireSRWLockExclusive(session.GetSendQueueLock());
-				const size_t sqSize = sq.Size();
 				// ReleaseSRWLockExclusive(session.GetSendQueueLock());
-				if (session.m_cancelIo == 0 && sqSize > 0)
-					if (InterlockedExchange8(&session.m_isSending, 1) == 0)
-						pServer->PostSend(session);
+				if (session.m_cancelIo == 0 && sq.Size() > 0)	// A. Send Flag를 켜기 전 먼저 확인 (저비용)
+				{
+					if (InterlockedExchange8(&session.m_isSending, 1) == 0)		// B. Send Queue에 보낼 패킷이 있다고 판단된 경우 Send Flag 켜기 (인터락 수행)
+					{
+						if (sq.Size() > 0)
+						{
+							// A 파트 확인 후 스레드가 퀀텀 타임 모두 소비 후 다시 Ready 상태로 전환된 직후
+							// 다른 스레드에서 송신을 수행했다가 다시 깨어난 경우 Send Queue가 비어있을 수 있으므로 다시 확인.
+							// (불필요한 Zero Byte Send 완료통지가 발생하는 것을 회피)
+							pServer->PostSend(session);
+						}
+						else
+						{
+							InterlockedExchange8(&session.m_isSending, 0);
+						}
+					}
+				}
 			}
 			else
 			{
