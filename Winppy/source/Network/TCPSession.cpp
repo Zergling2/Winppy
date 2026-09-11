@@ -81,7 +81,7 @@ void TCPSession::Start(const TCPSessionStartDesc& desc)
 	// 이 문제를 해결하기 위해, m_released 플래그를 끄기 전에 먼저 보호 참조 카운트 1을 증가시킨 뒤 세션을 시작시킨다.
 	// (보충내용)
 	// 처음에는 이렇게 문제를 해결하려고 했었다.
-	// m_flag.m_refCount = 0xffff;	// 쓰이지 않을만한 센티넬 값을 넣어둔다.   (쓸 수 없는 방법)
+	// m_flag.m_refCount = 0xffff;	// TryReleaseSession에서 착각할 수 없도록 쓰이지 않을만한 센티넬 값을 넣어둔다. (쓸 수 없는 방법)
 	// 이렇게 하면 다른 스레드들이 +1과 -1을 반복중인 참조 카운트 흐름의 연속성을 깨버리는 아주 위험한 코드이다.
 
 	// (최종 문제 해결 코드)
