@@ -76,7 +76,7 @@ void TCPSession::Start(const TCPSessionStartDesc& desc)
 	// TryReleaseSession에서 대기타고 있는 또다른 스레드가 존재할 수 있기 때문이다.
 	// TryReleaseSession 함수에서는 InterlockedCompareExchange로 m_releasedAndRefCount가 0x00000000인 경우 해제를 수행하는데,
 	// 세션이 재활용되어 유효한 세션임에도 불구하고 밑에서 released 플래그를 끄고 나간 순간 m_releasedAndRefCount가 0x00000000이 되어
-	// 이제 막 시작하려고 하는 새 세션을 해제시켜버릴 수 있다.ㄴ
+	// 이제 막 시작하려고 하는 새 세션을 해제시켜버릴 수 있다.
 	// 
 	// 이 문제를 해결하기 위해, m_released 플래그를 끄기 전에 먼저 보호 참조 카운트 1을 증가시킨 뒤 세션을 시작시킨다.
 	// (보충내용)
@@ -84,14 +84,13 @@ void TCPSession::Start(const TCPSessionStartDesc& desc)
 	// m_flag.m_refCount = 0xffff;	// 쓰이지 않을만한 센티넬 값을 넣어둔다.   (쓸 수 없는 방법)
 	// 이렇게 하면 다른 스레드들이 +1과 -1을 반복중인 참조 카운트 흐름의 연속성을 깨버리는 아주 위험한 코드이다.
 
+	// (최종 문제 해결 코드)
+	InterlockedIncrement16(&m_flag.m_refCount);		// 보호 카운트 1을 준 뒤 released 플래그를 꺼야 한다.
 
-	InterlockedIncrement16(&m_flag.m_refCount);		// 1 증가시킨 뒤 released 플래그를 꺼야 한다.
-
-	// _ReadWriteBarrier();	// (아래 released 플래그 인터락이 역할 겸함.)
-	InterlockedExchange16(&m_flag.m_released, 0);	// 메모리 장벽, id 설정 메모리에 반영 후 released 플래그 변경 (반드시 인터락으로 설정해야 함)
-	// 반드시 m_flag.m_released가 m_id 보다 먼저 store되는 식의 컴파일러 재배치를 막아야만 함.
-	// x86은 일단 의존성 없는 변수들간에 한해서 load가 store를 앞지르는 경우 외에는 하드웨어 재배치는 없으므로 괜찮으나 컴파일러의 명령어 재배치를 막으려면
-	// 인터락으로 해야 재배치를 안한다. (인터락이 암시적으로 컴파일러 재배치까지 막음.)
+	// 다른 스레드들에게 반드시 새로운 m_id 값이 먼저 보이고, 그 뒤에 released 플래그가 0으로 꺼지는 것으로 보여져야 한다.
+	InterlockedExchange16(&m_flag.m_released, 0);	// x86에서는 위의 요구조건을 인터락 계열들이 보장함. (컴파일러 재배치 방지까지 보장된다.)
+	// x86은 일단 의존성 없는 변수들간에 한해서 load가 store를 앞지르는 경우 외에는 하드웨어 재배치는 없으므로 괜찮으나
+	// 혹시 모를 컴파일러의 명령어 재배치를 막으려면 인터락으로 해야 재배치를 안한다. (인터락이 암시적으로 컴파일러 재배치까지 막음.)
 	
 	// 이렇게 해야 released 플래그가 바뀐 것을 다른 스레드가 본 순간 m_id는 이미 새 값이 보여짐을 보장할 수 있음.
 	// 버그 시나리오: 어떤 다른 스레드가 세션에 대해 Disconnect를 호출한 경우 released 플래그가 먼저 0이 되어버리고 재활용된 세션의
