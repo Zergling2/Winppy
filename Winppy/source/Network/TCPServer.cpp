@@ -532,7 +532,7 @@ void TCPServer::Send(uint64_t id, Packet packet)
 	} while (false);
 
 	if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
-		this->ReleaseSession(session);
+		this->TryReleaseSession(session);
 }
 
 void TCPServer::Disconnect(uint64_t id)
@@ -568,7 +568,7 @@ void TCPServer::Disconnect(uint64_t id)
 	} while (false);
 
 	if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
-		this->ReleaseSession(session);
+		this->TryReleaseSession(session);
 }
 
 bool TCPServer::GetAddress(uint64_t id, wchar_t* pBuf, size_t len, uint16_t& port)
@@ -598,7 +598,7 @@ bool TCPServer::GetAddress(uint64_t id, wchar_t* pBuf, size_t len, uint16_t& por
 	} while (false);
 
 	if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
-		this->ReleaseSession(session);
+		this->TryReleaseSession(session);
 
 	return result;
 }
@@ -628,7 +628,7 @@ bool TCPServer::GetAddress(uint64_t id, uint32_t& ip, uint16_t& port)
 	} while (false);
 
 	if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
-		this->ReleaseSession(session);
+		this->TryReleaseSession(session);
 
 	return result;
 }
@@ -673,7 +673,7 @@ void TCPServer::DisconnectAllSessions()
 	}
 }
 
-void TCPServer::ReleaseSession(TCPSession& session)
+void TCPServer::TryReleaseSession(TCPSession& session)
 {
 	// 실패 시 다른 스레드의 세션 참조로 인한 RefCount 증가
 	// refCount, released 플래그 모두 0이었던 경우에만 통과
@@ -726,7 +726,8 @@ void TCPServer::DoSessionReleaseJob(TCPSession& session)
 	m_readySessionIndices.push_back(static_cast<uint32_t>(sessionIndex));
 	ReleaseSRWLockExclusive(&m_readySessionIndicesLock);
 
-	// released 플래그는 아직 절대 끄면 안됨.
+	// released 플래그는 아직 절대 끄면 안됨. 특히 절대 안되는 행위는 released 플래그와 참조 카운트를 둘 다 0으로 만드는 것.
+	// 이유는 TCPSession::Start 함수 내부에 기록해두었다.
 }
 
 void TCPServer::OnReceiveData(TCPSession& session, size_t numOfBytesTransferred)
@@ -843,7 +844,7 @@ void TCPServer::PostRecv(TCPSession& session)
 				// (입출력 실패 시 완료통지 자체가 오지 않으므로 참조 카운트 여기서 차감.
 				// CancelIo(Ex)에서 동기 작업을 취소해버리는 경우에 IO 완료통지가 발생하지 않는다고 되어있는데,
 				// 이 경우에는 WSASend/Recv 함수가 실패하여 실행 흐름이 이곳으로 오게 될 것이므로 세션 참조 카운트 차감을 문제없이 할 수 있다.)
-				this->ReleaseSession(session);
+				this->TryReleaseSession(session);
 			}
 			break;
 		}
@@ -921,7 +922,7 @@ void TCPServer::PostSend(TCPSession& session)
 				// (입출력 실패 시 완료통지 자체가 오지 않으므로 참조 카운트 여기서 차감.
 				// CancelIo(Ex)에서 동기 작업을 취소해버리는 경우에 IO 완료통지가 발생하지 않는다고 되어있는데,
 				// 이 경우에는 WSASend/Recv 함수가 실패하여 실행 흐름이 이곳으로 오게 될 것이므로 세션 참조 카운트 차감을 문제없이 할 수 있다.)
-				this->ReleaseSession(session);
+				this->TryReleaseSession(session);
 			}
 			break;
 		}
@@ -1083,9 +1084,13 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 		session.Start(desc);
 		InterlockedIncrement(pSessionCount);
 
-		// 초기 상태에서는 RecvPost로 인한 최소 참조 카운트 1조차 없으므로 Inc/Dec로 로직을 보호한다.
-		// 특히 OnConnet에서 Disconnect함수를 호출 할 수 있으므로 참조 카운트 보호가 적용되어 있어야	한다.
-		InterlockedIncrement16(&session.m_flag.m_refCount);
+		// 초기 상태에서는 WSARecv도 걸려있지 않아 해제 방지에 필요한 최소한의 참조 카운트 1조차 보장할 수 없는 상태이다.
+		// 특히 OnConnet에서 Send 등을 호출하는 경우 보호 참조 카운트 없이 호출되면 0 -> 1 -> 0으로 인해 세션이 해제될 수 있으므로 중요.
+
+		// 따라서 참조 카운트롤 1 증가시키고 시작해야 한다. 그런데 해당 작업은 이미 TCPSession::Start에서 수행한 상태이다.
+		// 그리고 TCPSession::Start에 기록해둔 추가 설명대로, released 플래그를 끄기 전에 이미 참조 카운트를 확보해 두어야만 하므로
+		// 밑에 나오는 InterlockedDecrement와의 코드 대칭성을 생각한답시고 TCPSession::Start에서 released 플래그를 끈 뒤에
+		// 여기 나와서 InterlockedIncrement를 수행해선 이미 늦는다. (TryReleaseSession에서 지금 세션을 또 해제해버릴 수 있다.)
 		do
 		{
 			bool conn = pServer->OnConnect(ipStr, port, desc.m_id);
@@ -1101,8 +1106,8 @@ unsigned int __stdcall TCPServer::AcceptThreadEntry(void* pArg)
 			pServer->PostRecv(session);
 		} while (false);
 
-		if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)
-			pServer->ReleaseSession(session);
+		if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)	// TCPSession::Start에서의 참조 카운트 증가에 대응되는 차감.
+			pServer->TryReleaseSession(session);
 	}
 
 	return 0;
@@ -1226,7 +1231,7 @@ unsigned int __stdcall TCPServer::WorkerThreadEntry(void* pArg)
 		}
 
 		if (InterlockedDecrement16(&session.m_flag.m_refCount) == 0)
-			pServer->ReleaseSession(session);
+			pServer->TryReleaseSession(session);
 	}
 
 	return 0;

@@ -214,7 +214,7 @@ void TCPClientEngine::DirectDisconnect(TCPClient& client)
 	}
 }
 
-void TCPClientEngine::ReleaseClient(TCPClient& client)
+void TCPClientEngine::TryReleaseClient(TCPClient& client)
 {
 	// 실패 시 다른 스레드의 세션 참조로 인한 RefCount 증가
 	// refCount, released 플래그 모두 0이었던 경우에만 통과
@@ -374,7 +374,7 @@ void TCPClientEngine::PostRecv(TCPClient& client)
 			m_fileLogger.Write(L"%s WSARecv failed with error: %d. Terminate the connection.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(client);
 			if (InterlockedDecrement16(&client.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
-				this->ReleaseClient(client);
+				this->TryReleaseClient(client);
 			break;
 		}
 	}
@@ -445,7 +445,7 @@ void TCPClientEngine::PostSend(TCPClient& client)
 			m_fileLogger.Write(L"%s WSASend failed with error: %d. Terminate the connection.\n", LogPrefixString::Fail(), ec);
 			this->DirectDisconnect(client);
 			if (InterlockedDecrement16(&client.m_flag.m_refCount) == 0)	// (완료통지 오지 않으므로 참조 카운트 여기서 차감.)
-				this->ReleaseClient(client);
+				this->TryReleaseClient(client);
 			break;
 		}
 	}
@@ -584,7 +584,7 @@ unsigned int __stdcall TCPClientEngine::WorkerThreadEntry(void* pArg)
 		}
 
 		if (InterlockedDecrement16(&client.m_flag.m_refCount) == 0)
-			pEngine->ReleaseClient(client);
+			pEngine->TryReleaseClient(client);
 	}
 
 	return 0;

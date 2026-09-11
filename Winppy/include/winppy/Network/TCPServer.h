@@ -249,7 +249,7 @@ namespace winppy
 	private:
 		void DirectDisconnect(TCPSession& session);	// 라이브러리 내부 전용
 		void DisconnectAllSessions();
-		void ReleaseSession(TCPSession& session);
+		void TryReleaseSession(TCPSession& session);
 		void DoSessionReleaseJob(TCPSession& session);
 		void OnReceiveData(TCPSession& session, size_t numOfBytesTransferred);
 		void PostRecv(TCPSession& session);

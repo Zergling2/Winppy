@@ -63,9 +63,13 @@ int TCPClient::Init(const TCPClientInitDesc& desc)
 		m_pEngine = desc.m_pEngine;
 
 		// OVERLAPPED 구조체 초기화
-		ZeroMemory(&m_connOverlapped, sizeof(m_recvOverlapped));
+		ZeroMemory(&m_connOverlapped, sizeof(m_connOverlapped));
 		ZeroMemory(&m_recvOverlapped, sizeof(m_recvOverlapped));
 		ZeroMemory(&m_sendOverlapped, sizeof(m_sendOverlapped));
+
+		// 플래그 초기화
+		m_flag.m_refCount = 0;
+		m_flag.m_released = 1;	// Released 상태로 시작.
 
 		// 버퍼 메모리 할당
 		const uint32_t recvBufSize = Math::NextPowerOf2(Math::Clamp(desc.m_recvBufSize, RECV_BUFFER_SIZE_MIN, RECV_BUFFER_SIZE_MAX));
@@ -253,7 +257,7 @@ void TCPClient::Disconnect()
 	} while (false);
 
 	if (InterlockedDecrement16(&m_flag.m_refCount) == 0)	// 세션 유효성 확인 참조에 대응
-		m_pEngine->ReleaseClient(*this);
+		m_pEngine->TryReleaseClient(*this);
 }
 
 void TCPClient::Send(Packet packet)
@@ -296,7 +300,7 @@ void TCPClient::Send(Packet packet)
 	} while (false);
 
 	if (InterlockedDecrement16(&m_flag.m_refCount) == 0)		// 송신중 재연결 방지에 대응
-		m_pEngine->ReleaseClient(*this);
+		m_pEngine->TryReleaseClient(*this);
 }
 
 TCPClient::~TCPClient()

@@ -54,7 +54,7 @@ namespace winppy
 		void Release();
 	private:
 		void DirectDisconnect(TCPClient& client);
-		void ReleaseClient(TCPClient& client);
+		void TryReleaseClient(TCPClient& client);
 		void DoClientReleaseJob(TCPClient& client);
 		void OnReceiveData(TCPClient& client, size_t numOfBytesTransferred);
 		void PostRecv(TCPClient& client);
